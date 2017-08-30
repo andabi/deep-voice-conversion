@@ -17,9 +17,10 @@ def eval():
     # Summary
     summ_op = summaries(loss_op)
 
-    sv = tf.train.Supervisor(logdir="logdir/train2",
-                             save_model_secs=0)
+    sv = tf.train.Supervisor()
     with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir/train2"))
+
         summ, loss = sess.run([summ_op, loss_op])
         sv.summary_computed(sess, summ)
         print("loss:", loss)

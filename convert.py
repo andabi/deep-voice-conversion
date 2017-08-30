@@ -20,21 +20,19 @@ def convert():
 
     sv = tf.train.Supervisor()
     with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        # Restore parameters
-        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir2"))
-        print("Restored!")
+        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir/train2"))
 
         # Get model name
-        mname = open('logdir2/checkpoint', 'r').read().split('"')[1]; print("model:", mname)  # model name
+        mname = open('logdir/train2/checkpoint', 'r').read().split('"')[1]
 
-        for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
-            specs = sess.run(model.logits)
-            for s in specs:
-                audio = spectrogram2wav(np.power(np.e, s))
-                write('outputs/{}_{}'.format(mname, i), hp.sr, audio)
+        specs, y_specs = sess.run([model(), model.y_spec])
+        for i, (spec, y_spec) in enumerate(zip(specs, y_specs)):
+            audio = spectrogram2wav(spec)
+            write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
+
+            y_audio = spectrogram2wav(y_spec)
+            write('outputs/{}_{}_gt.wav'.format(mname, i), hp.sr, y_audio)
 
 if __name__ == '__main__':
     convert()
     print("Done")
-
-

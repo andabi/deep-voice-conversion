@@ -17,12 +17,12 @@ def eval():
     # Summary
     summ_op = summaries(acc_op)
 
-    sv = tf.train.Supervisor(logdir="logdir/train1",
-                             save_model_secs=0)
+    sv = tf.train.Supervisor()
 
-    session_conf = tf.ConfigProto(allow_soft_placement=True,
-    )
+    session_conf = tf.ConfigProto(allow_soft_placement=True)
     with sv.managed_session(config=session_conf) as sess:
+        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir/train1"))
+
         summ, acc = sess.run([summ_op, acc_op])
         sv.summary_computed(sess, summ)
 

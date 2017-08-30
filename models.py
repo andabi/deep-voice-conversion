@@ -38,11 +38,14 @@ class Model:
         elif mode == "test2":
             self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode)
         else: # `convert`
-            self.x_mfcc, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode)
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
         self.ppgs, self.preds_ppgs, self.logits_ppgs, self.preds_spec = self.net_template()
+
+    def __call__(self):
+        return self.preds_spec
 
     def _net1(self):
         with tf.variable_scope('net1'):
