@@ -41,11 +41,8 @@ class Model:
             self.x_mfcc, self.num_batch = get_batch(mode=mode)
 
         # Networks
-        self.net = tf.make_template('net', self._net2)
-        self.preds_spec, self.logits_spec = self()
-
-    def __call__(self):
-        return self.net()
+        self.net_template = tf.make_template('net', self._net2)
+        self.ppgs, self.preds_ppgs, self.logits_ppgs, self.preds_spec = self.net_template()
 
     def _net1(self):
         with tf.variable_scope('net1'):
@@ -91,11 +88,23 @@ class Model:
 
         return ppgs, preds, logits
 
+    def loss_net1(self):
+        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppgs, labels=self.y_ppgs)
+        loss *= istarget
+        loss = tf.reduce_mean(loss)
+        return loss
+
+    def acc_net1(self):
+        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
+        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_ppgs, self.y_ppgs)) * istarget)
+        num_targets = tf.reduce_sum(istarget)
+        acc = num_hits / num_targets
+        return acc
+
     def _net2(self):
         # PPGs from net1
-        # TODO refactoring
-        self.ppgs, self.preds_ppgs, self.logits_ppgs = self._net1()
-        ppgs = self.ppgs
+        ppgs, preds_ppg, logits_ppg = self._net1()
 
         with tf.variable_scope('net2'):
             # Encoder
@@ -131,48 +140,18 @@ class Model:
             enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
 
             # Final linear projection
-            logits = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
-            istarget = tf.sign(tf.abs(tf.reduce_sum(ppgs, -1)))  # (N, T)
-            preds = tf.to_int32(tf.arg_max(logits, dimension=-1)) # (N, T)
-            preds *= tf.to_int32(istarget)  # (N, T)
+            # logits_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
+            # istarget = tf.sign(tf.abs(tf.reduce_sum(ppgs, -1)))  # (N, T)
+            # preds_spec = tf.to_int32(tf.arg_max(logits_spec, dimension=-1)) # (N, T)
+            # preds_spec *= tf.to_int32(istarget)  # (N, T)
+            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
-        return preds, logits
-
-    def loss_net1(self):  # Loss
-        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppgs, labels=self.y_ppgs)
-
-        # Target masking
-        loss *= istarget
-
-        # Mean loss
-        loss = tf.reduce_mean(loss)
-
-        return loss
-
-    def accuracy_net1(self):
-        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_ppgs, self.y_ppgs)) * istarget)
-        num_targets = tf.reduce_sum(istarget)
-        acc = num_hits / num_targets
-        return acc
+        return ppgs, preds_ppg, logits_ppg, preds_spec
 
     def loss_net2(self):  # Loss
-        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.squared_difference(self.logits_spec, self.y_spec)
-
-        # Target masking
-        # FIXME
-        # loss *= istarget
+        loss = tf.squared_difference(self.preds_spec, self.y_spec)
 
         # Mean loss
         loss = tf.reduce_mean(loss)
 
         return loss
-
-    def accuracy_net2(self):
-        istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_spec, self.y_spec)) * istarget)
-        num_targets = tf.reduce_sum(istarget)
-        acc = num_hits / num_targets
-        return acc
