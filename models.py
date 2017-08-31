@@ -158,3 +158,15 @@ class Model:
         loss = tf.reduce_mean(loss)
 
         return loss
+
+    @classmethod
+    def load_variables(cls, sess, mode):
+        if mode == 'train1':
+            logdir = 'logdir/train1'
+        else:
+            logdir = 'logdir/train2'
+        ckpt = tf.train.latest_checkpoint(logdir)
+        if ckpt:
+            mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+            tf.train.Saver().restore(sess, ckpt)
+            print('Model loaded: {}, {}'.format(mode, mname))

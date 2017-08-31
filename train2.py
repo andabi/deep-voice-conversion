@@ -13,9 +13,6 @@ from models import Model
 def main():
     model = Model(mode="train2")
 
-    # Load trained model from train1
-    load_model_variables()
-
     # Loss
     loss_op = model.loss_net2()
 
@@ -28,23 +25,21 @@ def main():
     # Summary
     summ_op = summaries(loss_op)
 
-    saver = tf.train.Saver()
-
     session_conf = tf.ConfigProto(
-        device_count={'CPU': 1, 'GPU': 1},
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            per_process_gpu_memory_fraction=0.25
         ),
     )
     # Training
     with tf.Session(config=session_conf) as sess:
+        # Load trained model
+        sess.run(tf.global_variables_initializer())
+        model.load_variables(sess, 'train1')
+
         writer = tf.summary.FileWriter('logdir/train2', sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-
-        sess.run(tf.global_variables_initializer())
 
         for epoch in range(1, hp.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
@@ -52,9 +47,10 @@ def main():
 
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
-            writer.add_summary(sess.run(summ_op), global_step=gs)
+            writer.add_summary(summ, global_step=gs)
 
-            saver.save(sess, 'logdir/train2/step_%d' % gs)
+            if epoch % 5 == 0:
+                tf.train.Saver().save(sess, 'logdir/train2/step_%d' % gs)
 
         coord.request_stop()
         coord.join(threads)
@@ -65,14 +61,6 @@ def summaries(loss):
         tf.summary.histogram(v.name, v)
     tf.summary.scalar('net2/train/loss', loss)
     return tf.summary.merge_all()
-
-
-def load_model_variables():
-    with tf.Session() as sess:
-        ckpt = tf.train.latest_checkpoint('logdir/train1')
-        if ckpt:
-            tf.train.Saver().restore(sess, ckpt)
-            print('Model loaded.')
 
 
 if __name__ == '__main__':

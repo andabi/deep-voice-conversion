@@ -27,26 +27,35 @@ def main():
     # Summary
     summ_op = summaries(loss_op, acc_op)
 
-    # Training
-    sv = tf.train.Supervisor(logdir="logdir/train1", save_model_secs=0)
-
     session_conf = tf.ConfigProto(
-        device_count={'CPU': 1, 'GPU': 1},
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            per_process_gpu_memory_fraction=0.25
         ),
     )
-    with sv.managed_session(config=session_conf) as sess:
+    # Training
+    with tf.Session(config=session_conf) as sess:
+        # Load trained model
+        sess.run(tf.global_variables_initializer())
+        model.load_variables(sess, 'train1')
+
+        writer = tf.summary.FileWriter('logdir/train1', sess.graph)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
+
         for epoch in range(1, hp.num_epochs + 1):
-            if sv.should_stop(): break
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 sess.run(train_op)
 
+            # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
-            sv.summary_computed(sess, summ)
+            writer.add_summary(summ, global_step=gs)
 
-            sv.saver.save(sess, 'logdir/train1/step_%d' % gs)
+            if epoch % 5 == 0:
+                tf.train.Saver().save(sess, 'logdir/train1/step_%d' % gs)
+
+        coord.request_stop()
+        coord.join(threads)
 
 
 def summaries(loss, acc):

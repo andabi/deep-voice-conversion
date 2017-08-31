@@ -17,14 +17,28 @@ def eval():
     # Summary
     summ_op = summaries(acc_op)
 
-    sv = tf.train.Supervisor()
+    session_conf = tf.ConfigProto(
+        allow_soft_placement=True,
+        device_count={'CPU': 1, 'GPU': 0},
+    )
+    with tf.Session(config=session_conf) as sess:
+        # Load trained model
+        sess.run(tf.global_variables_initializer())
+        model.load_variables(sess, 'train1')
 
-    session_conf = tf.ConfigProto(allow_soft_placement=True)
-    with sv.managed_session(config=session_conf) as sess:
-        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir/train1"))
+        writer = tf.summary.FileWriter('logdir/train1', sess.graph)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
 
         summ, acc = sess.run([summ_op, acc_op])
-        sv.summary_computed(sess, summ)
+
+        writer.add_summary(summ)
+
+        writer.close()
+
+        coord.request_stop()
+        coord.join(threads)
 
         print("acc:", acc)
 

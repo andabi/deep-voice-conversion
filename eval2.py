@@ -17,12 +17,28 @@ def eval():
     # Summary
     summ_op = summaries(loss_op)
 
-    sv = tf.train.Supervisor()
-    with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        sv.saver.restore(sess, tf.train.latest_checkpoint("logdir/train2"))
+    session_conf = tf.ConfigProto(
+        allow_soft_placement=True,
+        device_count={'CPU': 1, 'GPU': 0},
+    )
+    with tf.Session(config=session_conf) as sess:
+        # Load trained model
+        sess.run(tf.global_variables_initializer())
+        model.load_variables(sess, 'train2')
+
+        writer = tf.summary.FileWriter('logdir/train2', sess.graph)
+
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
 
         summ, loss = sess.run([summ_op, loss_op])
-        sv.summary_computed(sess, summ)
+
+        writer.add_summary(summ)
+        writer.close()
+
+        coord.request_stop()
+        coord.join(threads)
+
         print("loss:", loss)
 
 
