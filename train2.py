@@ -55,6 +55,16 @@ def main():
         coord.request_stop()
         coord.join(threads)
 
+# def load_variables(sess):
+#     logdir = 'logdir/train1'
+#     mode = 'train1'
+#     ckpt = tf.train.latest_checkpoint(logdir)
+#     if ckpt:
+#         mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+#         # tf.train.Saver().restore(sess, ckpt)
+#         sess.run(tf.global_variables_initializer())
+#         print('Model loaded: {}, {}'.format(mode, mname))
+
 
 def summaries(loss):
     for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
@@ -66,3 +76,17 @@ def summaries(loss):
 if __name__ == '__main__':
     main()
     print("Done")
+
+# var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net')
+# sv = tf.train.Supervisor(logdir='logdir/train2', save_model_secs=0, init_op=tf.variables_initializer(var_list))
+# with sv.managed_session(config=session_conf) as sess:
+#     for epoch in range(1, hp.num_epochs + 1):
+#         for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+#             sess.run(train_op)
+#
+#         # Write checkpoint files at every epoch
+#         summ, gs = sess.run([summ_op, global_step])
+#         sv.summary_computed(sess, summ, global_step=gs)
+#
+#         if epoch % 5 == 0:
+#             tf.train.Saver().save(sess, 'logdir/train2/step_%d' % gs)

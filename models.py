@@ -163,10 +163,14 @@ class Model:
     def load_variables(cls, sess, mode):
         if mode == 'train1':
             logdir = 'logdir/train1'
+            # keep training train1
+            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         else:
             logdir = 'logdir/train2'
+            # load variables from train1
+            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         ckpt = tf.train.latest_checkpoint(logdir)
         if ckpt:
             mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
-            tf.train.Saver().restore(sess, ckpt)
+            tf.train.Saver(var_list=var_list).restore(sess, ckpt)
             print('Model loaded: {}, {}'.format(mode, mname))
