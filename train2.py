@@ -34,7 +34,7 @@ def main():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train1')
+        model.load_variables(sess, 'train2')
 
         writer = tf.summary.FileWriter('logdir/train2', sess.graph)
 

@@ -28,7 +28,7 @@ def convert():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train2')
+        model.load_variables(sess, 'convert')
 
         writer = tf.summary.FileWriter('logdir/train2', sess.graph)
 
