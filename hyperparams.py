@@ -13,9 +13,10 @@ class Hyperparams:
     frame_shift = 0.005 # seconds
     frame_length = 0.025 # seconds
     hop_length = int(sr*frame_shift) # samples.  This is dependent on the frame_shift.
-    n_fft = int(sr*frame_length) # samples. This is dependent on the frame_length.
-    win_length = n_fft  # TODO cross check
-    n_mfcc = 20
+    win_length = int(sr*frame_length) # =400. samples. This is dependent on the frame_length.
+    n_fft = 512 # TODO cross check   
+    preemphasis = 0.97 
+    n_mfcc = 40
     n_iter = 30 # Number of inversion iterations
 
     # model

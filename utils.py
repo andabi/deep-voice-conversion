@@ -136,47 +136,37 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                 with self._lock:
                     self._runs_per_session[sess] -= 1
 
-def _get_mfccs(sound_file):
-    '''Extracts MFCCs from given `sound_file`.
-    Args:
-      sound_file: A string. The full path of the sound file.
-
-    Returns:
-      Transposed MFCCs: A 2d array. Has shape of (T, n_mfcc)
+def _get_mfccs_and_spectrogram(wav_file, Trim=True):
+    '''From `wav_file` (string), which has been fetched from slice queues,
+       extracts mfccs and spectrogram, then enqueue them again.
+       This is applied in `train2` or `test2` phase.
     '''
-    # Load sound file
-    y, sr = librosa.load(sound_file, sr=hp.sr)
+    # Load
+    y, sr = librosa.load(wav_file) 
 
-    # mfccs
-    mfccs = librosa.feature.mfcc(y=y,
-                                 sr=sr,
-                                 n_fft=hp.n_fft,
-                                 hop_length=hp.hop_length,
-                                 n_mfcc=hp.n_mfcc)
-    return np.transpose(mfccs)  # (T, n_mfccs)
+    # Trim
+    if Trim:
+        y, _ = librosa.effects.trim(y)
 
+    # Preemphasis
+    y = np.append(y[0], y[1:]-hp.preemphasis*y[:-1])
 
-def _get_spectrogram(sound_file):
-    '''Extracts magnitude from given `sound_file`.
-    Args:
-      sound_file: A string. The full path of the `sound file`.
-
-    Returns:
-      Transposed magnitude: A 2d array. Has shape of (T, 1+hp.n_fft//2)
-    '''
-    # Loading sound file
-    y, sr = librosa.load(sound_file, sr=hp.sr)
-
-    # stft. D: (1+n_fft//2, T)
+    # Get spectrogram
     D = librosa.stft(y=y,
                      n_fft=hp.n_fft,
                      hop_length=hp.hop_length,
                      win_length=hp.win_length)
+    mag = np.abs(D)  # (1+n_fft/2, t)
 
-    # magnitude spectrogram
-    magnitude = np.abs(D)  # (1+n_fft/2, T)
+    # Mel conversion
+    mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels) # (n_mels, 1+n_fft//2)
+    mel = np.dot(mel_basis, mag**2) # (n_mels, t) 
 
-    return np.transpose(magnitude.astype(np.float32))  # (T, 1+n_fft/2)
+    # MFCCs
+    mel = librosa.power_to_db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp.n_mfccs, mel.shape[0]), mel) # (n_mfccs, t)
+
+    return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
 @producer_func
 def get_mfccs_and_phones(wav_file):
@@ -184,8 +174,8 @@ def get_mfccs_and_phones(wav_file):
        extracts mfccs (inputs), and phones (target), then enqueue them again.
        This is applied in `train1` or `test1` phase.
     '''
-    # mfccs (inputs)
-    mfccs = _get_mfccs(wav_file)
+    # Get MFCCs
+    mfccs, _ = _get_mfccs_and_spectrogram(wav_file, Trim=False)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -194,13 +184,19 @@ def get_mfccs_and_phones(wav_file):
     phn_file = wav_file.replace("WAV.wav", "PHN").replace("wav", "PHN")
     phn2idx, idx2phn = load_vocab()
     phns = np.zeros(shape=(num_timesteps,))
-    for line in open(phn_file, 'r').read().splitlines():
+    bnd_list = []
+    for line in open(phn_file, 'r').read().splitlines(): 
         start_point, _, phn = line.split()
         bnd = int(start_point) // hp.hop_length
         phns[bnd:] = phn2idx[phn]
+        bnd_list.append(bnd)
+    
+    # Trim
+    start, end = bnd_list[1], bnd_list[-1]
+    mfccs = mfccs[start:end]
+    phns = phns[start:end]
 
     return mfccs, phns
-
 
 @producer_func
 def get_mfccs_and_spectrogram(wav_file):
@@ -208,23 +204,8 @@ def get_mfccs_and_spectrogram(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    # mfccs (inputs)
-    mfccs = _get_mfccs(wav_file)
-
-    # get spectrogram (target)
-    spectrogram = _get_spectrogram(wav_file)
-
+    mfccs, spectrogram = _get_mfccs_and_spectrogram(wav_file, Trim=True)
     return mfccs, spectrogram
-
-
-@producer_func
-def get_mfccs(wav_file):
-    '''From `wav_file` (string), which has been fetched from slice queues,
-       extracts mfccs, then enqueue them again. This is applied at `convert` phase.
-    '''
-
-    mfccs = _get_mfccs(wav_file)
-    return mfccs
 
 
 def spectrogram2wav(spectrogram):
