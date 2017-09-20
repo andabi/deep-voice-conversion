@@ -18,6 +18,7 @@ class Hyperparams:
     preemphasis = 0.97 
     n_mfcc = 40
     n_iter = 30 # Number of inversion iterations
+    n_mels = 128
 
     # model
     hidden_units = 256 # alias = E

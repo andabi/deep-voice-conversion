@@ -163,7 +163,7 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
 
     # MFCCs
     mel = librosa.power_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp.n_mfccs, mel.shape[0]), mel) # (n_mfccs, t)
+    mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, mel.shape[0]), mel) # (n_mfccs, t)
 
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
