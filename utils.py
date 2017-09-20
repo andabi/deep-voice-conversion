@@ -148,8 +148,7 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     if Trim:
         y, _ = librosa.effects.trim(y)
 
-    # Preemphasis
-    y = np.append(y[0], y[1:]-hp.preemphasis*y[:-1])
+    y = preemphasis(y)
 
     # Get spectrogram
     D = librosa.stft(y=y,
@@ -228,3 +227,12 @@ def invert_spectrogram(spectrogram):
     spectrogram: [f, t]
     '''
     return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
+
+
+def preemphasis(signal, coeff=0.97):
+    """perform preemphasis on the input signal.
+    :param signal: The signal to filter.
+    :param coeff: The preemphasis coefficient. 0 is no filter, default is 0.97.
+    :returns: the filtered signal.
+    """
+    return np.append(signal[0], signal[1:] - coeff * signal[:-1])
