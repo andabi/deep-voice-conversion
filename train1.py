@@ -9,7 +9,7 @@ from modules import *
 from models import Model
 
 
-def main():
+def main(logdir='logdir/train1'):
     model = Model(mode="train1")
 
     # Loss
@@ -36,9 +36,9 @@ def main():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train1')
+        model.load_variables(sess, 'train1', logdir=logdir)
 
-        writer = tf.summary.FileWriter('logdir/train1', sess.graph)
+        writer = tf.summary.FileWriter(logdir, sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
@@ -52,7 +52,7 @@ def main():
             writer.add_summary(summ, global_step=gs)
 
             if epoch % 5 == 0:
-                tf.train.Saver().save(sess, 'logdir/train1/step_%d' % gs)
+                tf.train.Saver().save(sess, '{}/step_%d'.format(logdir) % gs)
 
         coord.request_stop()
         coord.join(threads)
@@ -67,5 +67,5 @@ def summaries(loss, acc):
 
 
 if __name__ == '__main__':
-    main()
+    main(logdir='logdir_preem/train1')
     print("Done")

@@ -160,17 +160,17 @@ class Model:
         return loss
 
     @classmethod
-    def load_variables(cls, sess, mode):
+    def load_variables(cls, sess, mode, logdir):
         if mode == 'train1':
-            logdir = 'logdir/train1'
+            # logdir = 'logdir/train1'
             # keep training train1
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         elif mode == 'train2':
-            logdir = 'logdir/train2'
+            # logdir = 'logdir/train2'
             # load variables from train1
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         else: # convert
-            logdir = 'logdir/train2'
+            # logdir = 'logdir/train2'
             var_list = None
         ckpt = tf.train.latest_checkpoint(logdir)
         if ckpt:

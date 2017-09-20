@@ -10,7 +10,7 @@ import tensorflow as tf
 from models import Model
 
 
-def main():
+def main(logdir='logdir/train2'):
     model = Model(mode="train2")
 
     # Loss
@@ -34,9 +34,9 @@ def main():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train2')
+        model.load_variables(sess, 'train2', logdir=logdir)
 
-        writer = tf.summary.FileWriter('logdir/train2', sess.graph)
+        writer = tf.summary.FileWriter(logdir, sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
@@ -50,20 +50,10 @@ def main():
             writer.add_summary(summ, global_step=gs)
 
             if epoch % 5 == 0:
-                tf.train.Saver().save(sess, 'logdir/train2/step_%d' % gs)
+                tf.train.Saver().save(sess, '{}/step_%d'.format(logdir) % gs)
 
         coord.request_stop()
         coord.join(threads)
-
-# def load_variables(sess):
-#     logdir = 'logdir/train1'
-#     mode = 'train1'
-#     ckpt = tf.train.latest_checkpoint(logdir)
-#     if ckpt:
-#         mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
-#         # tf.train.Saver().restore(sess, ckpt)
-#         sess.run(tf.global_variables_initializer())
-#         print('Model loaded: {}, {}'.format(mode, mname))
 
 
 def summaries(loss):

@@ -13,7 +13,7 @@ from models import Model
 from tqdm import tqdm
 
 
-def convert():
+def convert(logdir='logdir/train2'):
     # Load graph
     model = Model(mode="convert")
 
@@ -28,15 +28,15 @@ def convert():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'convert')
+        model.load_variables(sess, 'convert', logdir=logdir)
 
-        writer = tf.summary.FileWriter('logdir/train2', sess.graph)
+        writer = tf.summary.FileWriter(logdir, sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
         # Get model name
-        mname = open('logdir/train2/checkpoint', 'r').read().split('"')[1]
+        mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
 
         specs, y_specs = sess.run([model(), model.y_spec])
         for i, (spec, y_spec) in enumerate(zip(specs, y_specs)):

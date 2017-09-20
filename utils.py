@@ -148,7 +148,7 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     if Trim:
         y, _ = librosa.effects.trim(y)
 
-    y = preemphasis(y)
+    y = preemphasis(y, coeff=hp.preemphasis)
 
     # Get spectrogram
     D = librosa.stft(y=y,

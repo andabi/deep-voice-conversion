@@ -7,7 +7,7 @@ from data_load import *
 from models import Model
 
 
-def eval():
+def eval(logdir='logdir/train2'):
     # Load graph
     model = Model(mode="test2")
 
@@ -24,9 +24,9 @@ def eval():
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train2')
+        model.load_variables(sess, 'train2', logdir=logdir)
 
-        writer = tf.summary.FileWriter('logdir/train2', sess.graph)
+        writer = tf.summary.FileWriter(logdir, sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
