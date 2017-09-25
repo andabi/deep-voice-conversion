@@ -158,12 +158,10 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     mag = np.abs(D)  # (1+n_fft/2, t)
 
     # Mel conversion
-    mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels) # (n_mels, 1+n_fft//2)
-    mel = np.dot(mel_basis, mag**2) # (n_mels, t) 
+    S = librosa.feature.melspectrogram(y=y, sr=hp.sr, n_mels=hp.n_mels) # (n_mels, t)
 
     # MFCCs
-    mel = librosa.power_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, mel.shape[0]), mel) # (n_mfccs, t)
+    mfccs = librosa.feature.mfcc(sr=hp.sr, S=librosa.power_to_db(S), n_mfcc=hp.n_mfcc) # (n_mfccs, t)
 
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
@@ -184,7 +182,7 @@ def get_mfccs_and_phones(wav_file):
     phn2idx, idx2phn = load_vocab()
     phns = np.zeros(shape=(num_timesteps,))
     bnd_list = []
-    for line in open(phn_file, 'r').read().splitlines(): 
+    for line in open(phn_file, 'r').read().splitlines():
         start_point, _, phn = line.split()
         bnd = int(start_point) // hp.hop_length
         phns[bnd:] = phn2idx[phn]
@@ -194,6 +192,8 @@ def get_mfccs_and_phones(wav_file):
     start, end = bnd_list[1], bnd_list[-1]
     mfccs = mfccs[start:end]
     phns = phns[start:end]
+
+    assert(len(mfccs) == len(phns))
 
     return mfccs, phns
 

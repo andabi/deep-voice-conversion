@@ -51,7 +51,7 @@ def main(logdir='logdir/train1'):
             summ, gs = sess.run([summ_op, global_step])
             writer.add_summary(summ, global_step=gs)
 
-            if epoch % 5 == 0:
+            if epoch % 10 == 0:
                 tf.train.Saver().save(sess, '{}/step_%d'.format(logdir) % gs)
 
         coord.request_stop()
@@ -67,5 +67,5 @@ def summaries(loss, acc):
 
 
 if __name__ == '__main__':
-    main(logdir='logdir_preem/train1')
+    main(logdir='logdir/train1')
     print("Done")

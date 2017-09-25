@@ -14,8 +14,11 @@ def eval(logdir='logdir/train1'):
     # Accuracy
     acc_op = model.acc_net1()
 
+    # Loss
+    loss_op = model.loss_net1()
+
     # Summary
-    summ_op = summaries(acc_op)
+    summ_op = summaries(acc_op, loss_op)
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,
@@ -31,7 +34,7 @@ def eval(logdir='logdir/train1'):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        summ, acc = sess.run([summ_op, acc_op])
+        summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
 
         writer.add_summary(summ)
 
@@ -41,10 +44,12 @@ def eval(logdir='logdir/train1'):
         coord.join(threads)
 
         print("acc:", acc)
+        print("loss:", loss)
 
 
-def summaries(acc):
+def summaries(acc, loss):
     tf.summary.scalar('net1/eval/acc', acc)
+    tf.summary.scalar('net1/eval/loss', loss)
     return tf.summary.merge_all()
 
 
