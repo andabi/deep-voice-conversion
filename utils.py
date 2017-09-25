@@ -142,7 +142,7 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
        This is applied in `train2` or `test2` phase.
     '''
     # Load
-    y, sr = librosa.load(wav_file) 
+    y, sr = librosa.load(wav_file, sr=hp.sr)
 
     # Trim
     if Trim:
