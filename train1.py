@@ -42,13 +42,13 @@ def main(logdir='logdir/train1'):
     )
     # Training
     with tf.Session(config=session_conf) as sess:
-        writer = tf.summary.FileWriter(logdir, sess.graph)
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
-
         # Load trained model
         sess.run(tf.global_variables_initializer())
         model.load_variables(sess, 'train1', logdir=logdir)
+
+        writer = tf.summary.FileWriter(logdir, sess.graph)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
 
         for epoch in range(1, hp.train.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):

@@ -53,7 +53,7 @@ def get_batch(mode, batch_size):
 
         if mode in ('train1', 'test1', 'train2', 'test2', 'convert'):
             # Create Queues
-            wav_file, = tf.train.slice_input_producer([wav_files, ], shuffle=True, capacity=1024)
+            wav_file, = tf.train.slice_input_producer([wav_files, ], shuffle=True, capacity=128)
 
             if mode in ('train1', 'test1'):
                 # Get inputs and target
@@ -65,7 +65,7 @@ def get_batch(mode, batch_size):
                 # create batch queues
                 x, y = tf.train.batch([x, y],
                                       shapes=[(None, hp.n_mfcc), (None,)],
-                                      num_threads=32,
+                                      num_threads=64,
                                       batch_size=batch_size,
                                       capacity=batch_size * 32,
                                       dynamic_pad=True)
