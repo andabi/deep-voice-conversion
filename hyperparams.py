@@ -8,6 +8,7 @@ https://www.github.com/kyubyong/vc
 
 class Hyperparams:
     '''Hyper parameters'''
+
     # signal processing
     sr = 16000 # Sampling rate.
     frame_shift = 0.005 # seconds
@@ -28,7 +29,11 @@ class Hyperparams:
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
 
-    # training scheme
-    lr = 0.0005
-    batch_size = 32
-    num_epochs = 10000
+    class train:
+        batch_size = 32
+        lr = 0.0005
+        num_epochs = 10000
+        save_per_epoch = 10
+
+    class test:
+        batch_size = 128

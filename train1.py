@@ -20,12 +20,20 @@ def main(logdir='logdir/train1'):
 
     # Training Scheme
     global_step = tf.Variable(0, name='global_step', trainable=False)
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train.lr)
     var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
     train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
 
     # Summary
-    summ_op = summaries(loss_op, acc_op)
+    for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1'):
+        tf.summary.histogram(v.name, v)
+    tf.summary.scalar('net1/train/loss', loss_op)
+    tf.summary.scalar('net1/train/acc', acc_op)
+    summ_op = tf.summary.merge_all()
+
+    # Test
+    model_test = Model(mode="test1")
+    test_summ_op = tf.summary.scalar('net1/test/acc', model_test.acc_net1())
 
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
@@ -34,16 +42,15 @@ def main(logdir='logdir/train1'):
     )
     # Training
     with tf.Session(config=session_conf) as sess:
+        writer = tf.summary.FileWriter(logdir, sess.graph)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
+
         # Load trained model
         sess.run(tf.global_variables_initializer())
         model.load_variables(sess, 'train1', logdir=logdir)
 
-        writer = tf.summary.FileWriter(logdir, sess.graph)
-
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
-
-        for epoch in range(1, hp.num_epochs + 1):
+        for epoch in range(1, hp.train.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 sess.run(train_op)
 
@@ -51,20 +58,17 @@ def main(logdir='logdir/train1'):
             summ, gs = sess.run([summ_op, global_step])
             writer.add_summary(summ, global_step=gs)
 
-            if epoch % 10 == 0:
-                tf.train.Saver().save(sess, '{}/step_%d'.format(logdir) % gs)
+            if epoch % hp.train.save_per_epoch == 0:
+                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
 
+                # Write test accuracy at every epoch
+                model_test.load_variables(sess, 'train1', logdir=logdir)
+                summ = sess.run(test_summ_op)
+                writer.add_summary(summ, global_step=gs)
+
+        writer.close()
         coord.request_stop()
         coord.join(threads)
-
-
-def summaries(loss, acc):
-    for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1'):
-        tf.summary.histogram(v.name, v)
-    tf.summary.scalar('net1/train/loss', loss)
-    tf.summary.scalar('net1/train/acc', acc)
-    return tf.summary.merge_all()
-
 
 if __name__ == '__main__':
     main(logdir='logdir/train1')

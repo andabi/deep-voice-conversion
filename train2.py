@@ -18,7 +18,7 @@ def main(logdir='logdir/train2'):
 
     # Training Scheme
     global_step = tf.Variable(0, name='global_step', trainable=False)
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train.lr)
     var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
     train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
 
@@ -41,7 +41,7 @@ def main(logdir='logdir/train2'):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(1, hp.num_epochs + 1):
+        for epoch in range(1, hp.train.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 sess.run(train_op)
 
@@ -49,8 +49,8 @@ def main(logdir='logdir/train2'):
             summ, gs = sess.run([summ_op, global_step])
             writer.add_summary(summ, global_step=gs)
 
-            if epoch % 5 == 0:
-                tf.train.Saver().save(sess, '{}/step_%d'.format(logdir) % gs)
+            if epoch % hp.train.save_per_epoch == 0:
+                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
 
         coord.request_stop()
         coord.join(threads)

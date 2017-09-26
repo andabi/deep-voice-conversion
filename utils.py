@@ -19,6 +19,7 @@ import threading
 
 from tensorflow.python.platform import tf_logging as logging
 
+
 def load_vocab():
     '''
     len(phns) is aliased as V.
@@ -33,6 +34,7 @@ def load_vocab():
     idx2phn = {idx:phn for idx, phn in enumerate(phns)}
 
     return phn2idx, idx2phn
+
 
 # Adapted from the `sugartensor` code.
 # https://github.com/buriburisuri/sugartensor/blob/master/sugartensor/sg_queue.py
@@ -136,6 +138,7 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                 with self._lock:
                     self._runs_per_session[sess] -= 1
 
+
 def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     '''From `wav_file` (string), which has been fetched from slice queues,
        extracts mfccs and spectrogram, then enqueue them again.
@@ -164,6 +167,7 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     mfccs = librosa.feature.mfcc(sr=hp.sr, S=librosa.power_to_db(S), n_mfcc=hp.n_mfcc) # (n_mfccs, t)
 
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
+
 
 @producer_func
 def get_mfccs_and_phones(wav_file):
@@ -197,6 +201,7 @@ def get_mfccs_and_phones(wav_file):
 
     return mfccs, phns
 
+
 @producer_func
 def get_mfccs_and_spectrogram(wav_file):
     '''From `wav_file` (string), which has been fetched from slice queues,
@@ -221,6 +226,7 @@ def spectrogram2wav(spectrogram):
     X_t = invert_spectrogram(X_best)
 
     return np.real(X_t)
+
 
 def invert_spectrogram(spectrogram):
     '''

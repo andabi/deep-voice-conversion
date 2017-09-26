@@ -25,26 +25,27 @@ def eval(logdir='logdir/train1'):
         device_count={'CPU': 1, 'GPU': 0},
     )
     with tf.Session(config=session_conf) as sess:
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train1', logdir=logdir)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
 
         writer = tf.summary.FileWriter(logdir, sess.graph)
 
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
+        # Load trained model
+        sess.run(tf.global_variables_initializer())
+        model.load_variables(sess, 'train1', logdir=logdir)
 
         summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
 
         writer.add_summary(summ)
 
+        print("acc:", acc)
+        print("loss:", loss)
+        print('\n')
+
         writer.close()
 
         coord.request_stop()
         coord.join(threads)
-
-        print("acc:", acc)
-        print("loss:", loss)
 
 
 def summaries(acc, loss):
@@ -54,5 +55,5 @@ def summaries(acc, loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir_preem/train1')
+    eval(logdir='logdir/train1')
     print("Done")

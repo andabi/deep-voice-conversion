@@ -28,17 +28,17 @@ class Model:
         # TODO refactoring
         # Inputs
         if mode == "train1": # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode, batch_size=hp.train.batch_size)
             self.is_training = True
         elif mode == "train2": # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.train.batch_size)
             self.is_training = True
         elif mode == "test1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
         elif mode == "test2":
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
         else: # `convert`
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode)
+            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
@@ -159,21 +159,28 @@ class Model:
 
         return loss
 
-    @classmethod
-    def load_variables(cls, sess, mode, logdir):
+    @staticmethod
+    def load_variables(sess, mode, logdir, model_name=None):
         if mode == 'train1':
-            # logdir = 'logdir/train1'
-            # keep training train1
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         elif mode == 'train2':
-            # logdir = 'logdir/train2'
-            # load variables from train1
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-        else: # convert
-            # logdir = 'logdir/train2'
+        else:  # convert
             var_list = None
+
         ckpt = tf.train.latest_checkpoint(logdir)
         if ckpt:
-            mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+            if not model_name:
+                model_name = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+            else:
+                ckpt = '{}/{}'.format(logdir, model_name)
+
             tf.train.Saver(var_list=var_list).restore(sess, ckpt)
-            print('Model loaded: {}, {}'.format(mode, mname))
+            print('Model loaded: {}, {}'.format(mode, model_name))
+
+    @staticmethod
+    def all_model_names(logdir):
+        import glob, os
+        path = '{}/*.meta'.format(logdir)
+        model_names = map(lambda f: os.path.basename(f).replace('.meta', ''), glob.glob(path))
+        return model_names
