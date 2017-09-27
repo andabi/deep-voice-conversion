@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from modules import *
 from models import Model
-import eval1
+# import eval1
 
 def main(logdir='logdir/train1'):
     model = Model(mode="train1")
@@ -30,9 +30,6 @@ def main(logdir='logdir/train1'):
     tf.summary.scalar('net1/train/loss', loss_op)
     tf.summary.scalar('net1/train/acc', acc_op)
     summ_op = tf.summary.merge_all()
-
-    # Eval at every n epoch
-    graph_for_eval = tf.Graph()
 
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
@@ -60,9 +57,9 @@ def main(logdir='logdir/train1'):
             if epoch % hp.train.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
 
-                # Write eval accuracy at every n epoch
-                with graph_for_eval.as_default():
-                    eval1.eval(logdir=logdir)
+            # Write eval accuracy at every epoch
+            # with tf.Graph().as_default():
+            #     eval1.eval(logdir=logdir)
 
         writer.close()
         coord.request_stop()

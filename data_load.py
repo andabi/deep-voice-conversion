@@ -60,12 +60,12 @@ def get_batch(mode, batch_size):
                 x, y = get_mfccs_and_phones(inputs=wav_file,
                                             dtypes=[tf.float32, tf.int32],
                                             capacity=2048,
-                                            num_threads=64)
+                                            num_threads=32)
 
                 # create batch queues
                 x, y = tf.train.batch([x, y],
                                       shapes=[(None, hp.n_mfcc), (None,)],
-                                      num_threads=64,
+                                      num_threads=32,
                                       batch_size=batch_size,
                                       capacity=batch_size * 32,
                                       dynamic_pad=True)
@@ -75,7 +75,7 @@ def get_batch(mode, batch_size):
                 x, y = get_mfccs_and_spectrogram(inputs=wav_file,
                                               dtypes=[tf.float32, tf.float32],
                                               capacity=2048,
-                                              num_threads=64)
+                                              num_threads=32)
 
                 # create batch queues
                 x, y = tf.train.batch([x, y],

@@ -36,4 +36,4 @@ class Hyperparams:
         save_per_epoch = 10
 
     class test:
-        batch_size = 128
+        batch_size = 32

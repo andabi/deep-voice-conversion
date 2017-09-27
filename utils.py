@@ -158,13 +158,15 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
                      n_fft=hp.n_fft,
                      hop_length=hp.hop_length,
                      win_length=hp.win_length)
-    mag = np.abs(D)  # (1+n_fft/2, t)
-
-    # Mel conversion
-    S = librosa.feature.melspectrogram(y=y, sr=hp.sr, n_mels=hp.n_mels) # (n_mels, t)
+    mag = np.abs(D)
 
     # MFCCs
-    mfccs = librosa.feature.mfcc(sr=hp.sr, S=librosa.power_to_db(S), n_mfcc=hp.n_mfcc) # (n_mfccs, t)
+    mfccs = librosa.feature.mfcc(y=y,
+                                 sr=hp.sr,
+                                 n_mfcc=hp.n_mfcc,
+                                 n_fft=hp.n_fft,
+                                 hop_length=hp.hop_length,
+                                 n_mels=hp.n_mels) # (n_mfccs, t)
 
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
