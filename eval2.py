@@ -48,5 +48,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    eval()
+    eval(logdir='logdir/train2')
     print("Done")

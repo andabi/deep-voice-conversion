@@ -30,10 +30,10 @@ class Hyperparams:
     dropout_rate = 0.2
 
     class train:
-        batch_size = 32
+        batch_size = 16
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 10
+        save_per_epoch = 1
 
     class test:
-        batch_size = 32
+        batch_size = 16

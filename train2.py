@@ -10,7 +10,7 @@ import tensorflow as tf
 from models import Model
 
 
-def main(logdir='logdir/train2'):
+def main(logdir1='logdir/train1', logdir2='logdir/train2'):
     model = Model(mode="train2")
 
     # Loss
@@ -28,16 +28,16 @@ def main(logdir='logdir/train2'):
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
             allow_growth=True,
+            per_process_gpu_memory_fraction=1,
         ),
     )
     # Training
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train2', logdir=logdir)
+        model.load_variables(sess, mode='train2', logdir=logdir1)
 
-        writer = tf.summary.FileWriter(logdir, sess.graph)
-
+        writer = tf.summary.FileWriter(logdir2, sess.graph)
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
@@ -50,8 +50,9 @@ def main(logdir='logdir/train2'):
             writer.add_summary(summ, global_step=gs)
 
             if epoch % hp.train.save_per_epoch == 0:
-                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
+                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
 
+        writer.close()
         coord.request_stop()
         coord.join(threads)
 
@@ -64,19 +65,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    main()
+    main(logdir1='logdir/train1', logdir2='logdir/train2')
     print("Done")
-
-# var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net')
-# sv = tf.train.Supervisor(logdir='logdir/train2', save_model_secs=0, init_op=tf.variables_initializer(var_list))
-# with sv.managed_session(config=session_conf) as sess:
-#     for epoch in range(1, hp.num_epochs + 1):
-#         for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
-#             sess.run(train_op)
-#
-#         # Write checkpoint files at every epoch
-#         summ, gs = sess.run([summ_op, global_step])
-#         sv.summary_computed(sess, summ, global_step=gs)
-#
-#         if epoch % 5 == 0:
-#             tf.train.Saver().save(sess, 'logdir/train2/step_%d' % gs)
