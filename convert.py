@@ -39,12 +39,13 @@ def convert(logdir='logdir/train2'):
         gs = int(model_name.split('_')[3])
 
         pred_specs, y_specs = sess.run([model(), model.y_spec])
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
+        specs = np.where(pred_specs < 0, 0., pred_specs)
+        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
         # Write the result
-        tf.summary.audio('orig', y_audio, hp.sr, max_outputs=hp.test.batch_size)
-        tf.summary.audio('pred', audio, hp.sr, max_outputs=hp.test.batch_size)
+        tf.summary.audio('orig', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
+        tf.summary.audio('pred', audio, hp.sr, max_outputs=hp.convert.batch_size)
         #     write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
         #     write('outputs/{}_{}_origin.wav'.format(mname, i), hp.sr, y_audio)
 

@@ -142,12 +142,8 @@ class Model:
             ### Bidirectional GRU
             enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
 
-            # Final linear projection
-            # logits_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
-            # istarget = tf.sign(tf.abs(tf.reduce_sum(ppgs, -1)))  # (N, T)
-            # preds_spec = tf.to_int32(tf.arg_max(logits_spec, dimension=-1)) # (N, T)
-            # preds_spec *= tf.to_int32(istarget)  # (N, T)
-            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
+            # Final projection
+            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1], activation=tf.nn.relu)  # log magnitude: (N, T, 1+hp.n_fft//2)
 
         return ppgs, preds_ppg, logits_ppg, preds_spec
 
