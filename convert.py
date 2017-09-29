@@ -35,23 +35,20 @@ def convert(logdir='logdir/train2'):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        # Get model name
-        mname = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+        model_name = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+        gs = int(model_name.split('_')[3])
 
-        specs, y_specs = sess.run([model(), model.y_spec])
-        for i, (spec, y_spec) in enumerate(zip(specs, y_specs)):
-            audio = spectrogram2wav(spec)
-            y_audio = spectrogram2wav(y_spec)
+        pred_specs, y_specs = sess.run([model(), model.y_spec])
+        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
+        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
-            write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
-            write('outputs/{}_{}_gt.wav'.format(mname, i), hp.sr, y_audio)
-
-        # TODO
         # Write the result
-        # tf.summary.audio('pred', audio, hp.sr, max_outputs=hp.batch_size)
-        # tf.summary.audio('gt', y_audio, hp.sr, max_outputs=hp.batch_size)
+        tf.summary.audio('orig', y_audio, hp.sr, max_outputs=hp.test.batch_size)
+        tf.summary.audio('pred', audio, hp.sr, max_outputs=hp.test.batch_size)
+        #     write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
+        #     write('outputs/{}_{}_origin.wav'.format(mname, i), hp.sr, y_audio)
 
-        writer.add_summary(sess.run(tf.summary.merge_all()))
+        writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
         writer.close()
 
         coord.request_stop()

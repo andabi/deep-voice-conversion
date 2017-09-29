@@ -214,20 +214,46 @@ def get_mfccs_and_spectrogram(wav_file):
     return mfccs, spectrogram
 
 
-def spectrogram2wav(spectrogram):
+def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=None, length=None):
     '''
-    spectrogram: [t, f], i.e. [t, nfft // 2 + 1]
+    
+    :param mag: [f, t]
+    :param n_fft: n_fft
+    :param win_length: window length
+    :param hop_length: hop length
+    :param num_iters: num of iteration when griffin-lim reconstruction
+    :param phase_angle: phase angle
+    :param length: length of wav
+    :return: 
     '''
-    spectrogram = spectrogram.T  # [f, t]
-    X_best = copy.deepcopy(spectrogram)  # [f, t]
-    for i in range(hp.n_iter):
-        X_t = invert_spectrogram(X_best)
-        est = librosa.stft(X_t, hp.n_fft, hp.hop_length, win_length=hp.win_length)  # [f, t]
-        phase = est / np.maximum(1e-8, np.abs(est))  # [f, t]
-        X_best = spectrogram * phase  # [f, t]
-    X_t = invert_spectrogram(X_best)
+    assert(num_iters > 0)
+    if phase_angle is None:
+        phase_angle = np.pi * np.random.rand(*mag.shape)
+    spec = mag * np.exp(1.j * phase_angle)
+    for i in range(num_iters):
+        wav = librosa.istft(spec, win_length=win_length, hop_length=hop_length, length=length)
+        if i != num_iters - 1:
+            spec = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+            _, phase = librosa.magphase(spec)
+            phase_angle = np.angle(phase)
+            spec = mag * np.exp(1.j * phase_angle)
+    return wav
 
-    return np.real(X_t)
+
+# def spectrogram2wav(spectrogram):
+#     '''
+#     spectrogram: [t, f], i.e. [t, nfft // 2 + 1]
+#     '''
+#     spectrogram = spectrogram.T  # [f, t]
+#     X_best = copy.deepcopy(spectrogram)  # [f, t]
+#     for i in range(hp.n_iter):
+#         X_t = invert_spectrogram(X_best)
+#         est = librosa.stft(X_t, hp.n_fft, hp.hop_length, win_length=hp.win_length)  # [f, t]
+#         phase = est / np.maximum(1e-8, np.abs(est))  # [f, t]
+#         X_best = spectrogram * phase  # [f, t]
+#     X_t = invert_spectrogram(X_best)
+#
+#     return np.real(X_t)
 
 
 def invert_spectrogram(spectrogram):
