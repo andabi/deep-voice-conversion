@@ -22,7 +22,7 @@ def convert(logdir='logdir/train2'):
         device_count={'CPU': 1, 'GPU': 1},
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            per_process_gpu_memory_fraction=0.25
+            per_process_gpu_memory_fraction=1
         ),
     )
     with tf.Session(config=session_conf) as sess:
@@ -57,5 +57,5 @@ def convert(logdir='logdir/train2'):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir/train2')
+    convert(logdir='logdir_split/train2')
     print("Done")

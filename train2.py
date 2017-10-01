@@ -65,5 +65,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    main(logdir1='logdir/train1', logdir2='logdir/train2')
+    main(logdir1='logdir/train1', logdir2='logdir_split/train2')
     print("Done")

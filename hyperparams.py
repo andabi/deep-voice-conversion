@@ -18,7 +18,7 @@ class Hyperparams:
     n_fft = 512
     preemphasis = 0.97 
     n_mfcc = 40
-    n_iter = 50 # Number of inversion iterations
+    n_iter = 30 # Number of inversion iterations
     n_mels = 128
 
     # model
@@ -33,10 +33,10 @@ class Hyperparams:
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 5
+        save_per_epoch = 10
 
     class test:
         batch_size = 32
 
     class convert:
-        batch_size = 2
+        batch_size = 3

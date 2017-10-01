@@ -38,7 +38,7 @@ class Model:
         elif mode == "test2":
             self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
         else: # `convert`
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
+            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.convert.batch_size)
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
