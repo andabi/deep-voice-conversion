@@ -57,5 +57,5 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir_relu/train2', queue=False)
+    convert(logdir='logdir_relu/train2')
     print("Done")

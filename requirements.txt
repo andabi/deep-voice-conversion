@@ -1,2 +1,3 @@
 librosa==0.5.1
-tqdm 
+soundfile
+tqdm

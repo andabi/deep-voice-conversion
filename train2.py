@@ -10,8 +10,8 @@ import tensorflow as tf
 from models import Model
 
 
-def main(logdir1='logdir/train1', logdir2='logdir/train2'):
-    model = Model(mode="train2", batch_size=hp.train.batch_size)
+def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
+    model = Model(mode="train2", batch_size=hp.train.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -43,6 +43,7 @@ def main(logdir1='logdir/train1', logdir2='logdir/train2'):
 
         for epoch in range(1, hp.train.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+                # TODO without queue
                 sess.run(train_op)
 
             # Write checkpoint files at every epoch

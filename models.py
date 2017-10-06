@@ -42,6 +42,7 @@ class Model:
             self.x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
             self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None, None))
             self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
+            self.num_batch = 1
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)

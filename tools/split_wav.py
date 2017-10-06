@@ -4,6 +4,7 @@
 import librosa
 import glob
 import os
+import soundfile as sf
 
 
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
@@ -25,8 +26,8 @@ def read(path, sr):
     return wav
 
 
-def write(wav, sr, path):
-    librosa.output.write_wav(path, wav, sr)
+def write(wav, sr, path, format='wav', subtype='PCM_16'):
+    sf.write(path, wav, sr, format=format, subtype=subtype)
 
 
 def split_path(path):
