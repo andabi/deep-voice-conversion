@@ -29,11 +29,14 @@ class Hyperparams:
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
 
+    # default
+    batch_size = 32
+
     class train:
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 10
+        save_per_epoch = 5
 
     class test:
         batch_size = 32

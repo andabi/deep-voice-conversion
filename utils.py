@@ -139,10 +139,8 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def _get_mfccs_and_spectrogram(wav_file, Trim=True):
-    '''From `wav_file` (string), which has been fetched from slice queues,
-       extracts mfccs and spectrogram, then enqueue them again.
-       This is applied in `train2` or `test2` phase.
+def get_mfccs_and_spectrogram(wav_file, Trim=True):
+    '''This is applied in `train2` or `test2` phase.
     '''
     # Load
     y, sr = librosa.load(wav_file, sr=hp.sr)
@@ -171,14 +169,11 @@ def _get_mfccs_and_spectrogram(wav_file, Trim=True):
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
 
-@producer_func
 def get_mfccs_and_phones(wav_file):
-    '''From a single `wav_file` (string), which has been fetched from slice queues,
-       extracts mfccs (inputs), and phones (target), then enqueue them again.
-       This is applied in `train1` or `test1` phase.
+    '''This is applied in `train1` or `test1` phase.
     '''
     # Get MFCCs
-    mfccs, _ = _get_mfccs_and_spectrogram(wav_file, Trim=False)
+    mfccs, _ = get_mfccs_and_spectrogram(wav_file, Trim=False)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -193,25 +188,15 @@ def get_mfccs_and_phones(wav_file):
         bnd = int(start_point) // hp.hop_length
         phns[bnd:] = phn2idx[phn]
         bnd_list.append(bnd)
-    
+
     # Trim
     start, end = bnd_list[1], bnd_list[-1]
     mfccs = mfccs[start:end]
     phns = phns[start:end]
 
-    assert(len(mfccs) == len(phns))
+    assert (len(mfccs) == len(phns))
 
     return mfccs, phns
-
-
-@producer_func
-def get_mfccs_and_spectrogram(wav_file):
-    '''From `wav_file` (string), which has been fetched from slice queues,
-       extracts mfccs and spectrogram, then enqueue them again.
-       This is applied in `train2` or `test2` phase.
-    '''
-    mfccs, spectrogram = _get_mfccs_and_spectrogram(wav_file, Trim=True)
-    return mfccs, spectrogram
 
 
 def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=None, length=None):

@@ -10,7 +10,7 @@ from models import Model
 # import eval1
 
 def main(logdir='logdir/train1'):
-    model = Model(mode="train1")
+    model = Model(mode="train1", batch_size=hp.train.batch_size)
 
     # Loss
     loss_op = model.loss_net1()

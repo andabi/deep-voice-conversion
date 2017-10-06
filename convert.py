@@ -13,9 +13,9 @@ from models import Model
 from tqdm import tqdm
 
 
-def convert(logdir='logdir/train2'):
+def convert(logdir='logdir/train2', queue=True):
     # Load graph
-    model = Model(mode="convert")
+    model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,
@@ -38,7 +38,7 @@ def convert(logdir='logdir/train2'):
         model_name = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
         gs = int(model_name.split('_')[3])
 
-        pred_specs, y_specs = sess.run([model(), model.y_spec])
+        pred_specs, y_specs = model.convert(sess)
         specs = np.where(pred_specs < 0, 0., pred_specs)
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
@@ -57,5 +57,5 @@ def convert(logdir='logdir/train2'):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir_split/train2')
+    convert(logdir='logdir_relu/train2', queue=False)
     print("Done")

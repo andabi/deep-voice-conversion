@@ -2,13 +2,13 @@
 #!/usr/bin/env python
 
 import tensorflow as tf
-from data_load import get_batch, load_vocab
+from data_load import get_batch, get_batch_queue, load_vocab
 from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
 from hyperparams import Hyperparams as hp
 
 
 class Model:
-    def __init__(self, mode=None):
+    def __init__(self, mode=None, batch_size=hp.batch_size, queue=True):
         '''
         mode: A string. One of the phases below:
           `train1`: TIMIT TRAIN waveform -> mfccs (inputs) -> PGGs -> phones (target) (ce loss)
@@ -18,27 +18,30 @@ class Model:
           `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
         '''
 
+        # TODO refactoring
         self.mode = mode
+        self.batch_size = batch_size
+        self.queue = queue
         self.is_training = False
 
-        self.x_mfcc = tf.placeholder(tf.float32, shape=(None, hp.n_mfcc))
-        self.y_ppgs = tf.placeholder(tf.int32, shape=(None, None))
-        self.y_spec = tf.placeholder(tf.float32, shape=(None, 1 + hp.n_fft // 2))
-
-        # TODO refactoring
-        # Inputs
-        if mode == "train1": # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode, batch_size=hp.train.batch_size)
-            self.is_training = True
-        elif mode == "train2": # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.train.batch_size)
-            self.is_training = True
-        elif mode == "test1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-            self.x_mfcc, self.y_ppgs, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
-        elif mode == "test2":
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.test.batch_size)
-        else: # `convert`
-            self.x_mfcc, self.y_spec, self.num_batch = get_batch(mode=mode, batch_size=hp.convert.batch_size)
+        if queue:
+            # Inputs
+            if mode == "train1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
+                self.x_mfcc, self.y_ppgs, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+                self.is_training = True
+            elif mode == "train2":  # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
+                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+                self.is_training = True
+            elif mode == "test1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
+                self.x_mfcc, self.y_ppgs, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+            elif mode == "test2":
+                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+            else:  # `convert`
+                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+        else:
+            self.x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
+            self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None, None))
+            self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
@@ -155,6 +158,17 @@ class Model:
 
         return loss
 
+    def convert(self, sess):
+        if self.mode not in ('train2', 'test2', 'convert'):
+            raise Exception("invalid mode: {}".format(self.mode))
+
+        if self.queue:
+            pred_specs, y_specs = sess.run([self(), self.y_spec])
+        else:
+            x, y = get_batch(self.mode, self.batch_size)
+            pred_specs, y_specs = sess.run([self(), self.y_spec], feed_dict={self.x_mfcc: x, self.y_spec: y})
+        return pred_specs, y_specs
+
     @staticmethod
     def load_variables(sess, mode, logdir, model_name=None):
         if mode == 'train1':
@@ -172,7 +186,7 @@ class Model:
                 ckpt = '{}/{}'.format(logdir, model_name)
 
             tf.train.Saver(var_list=var_list).restore(sess, ckpt)
-            print('Model loaded: {}, {}'.format(mode, model_name))
+            print('Model loaded. mode: {}, model_name: {}'.format(mode, model_name))
 
     @staticmethod
     def all_model_names(logdir):

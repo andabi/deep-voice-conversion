@@ -11,7 +11,7 @@ from models import Model
 
 
 def main(logdir1='logdir/train1', logdir2='logdir/train2'):
-    model = Model(mode="train2")
+    model = Model(mode="train2", batch_size=hp.train.batch_size)
 
     # Loss
     loss_op = model.loss_net2()

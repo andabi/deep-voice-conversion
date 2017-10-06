@@ -9,7 +9,7 @@ from models import Model
 
 def eval(logdir='logdir/train1'):
     # Load graph
-    model = Model(mode="test1")
+    model = Model(mode="test1", batch_size=hp.test.batch_size)
 
     # Accuracy
     acc_op = model.acc_net1()

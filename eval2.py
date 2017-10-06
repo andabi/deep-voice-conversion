@@ -9,7 +9,7 @@ from models import Model
 
 def eval(logdir='logdir/train2'):
     # Load graph
-    model = Model(mode="test2")
+    model = Model(mode="test2", batch_size=hp.test.batch_size)
 
     # Loss
     loss_op = model.loss_net2()
@@ -48,5 +48,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir/train2')
+    eval(logdir='logdir_relu/train2')
     print("Done")
