@@ -5,7 +5,9 @@ import tensorflow as tf
 from data_load import get_batch, get_batch_queue, load_vocab
 from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
 from hyperparams import Hyperparams as hp
-
+import numpy as np
+import sys
+import os
 
 class Model:
     def __init__(self, mode=None, batch_size=hp.batch_size, queue=True):
@@ -43,6 +45,11 @@ class Model:
             self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None, None))
             self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
             self.num_batch = 1
+
+        # Convert to log of magnitude
+        if hp.log_mag:
+            self.y_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+            # self.y_spec = tf.where(tf.greater(self.y_spec, 0.), tf.log(self.y_spec),
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
@@ -147,7 +154,7 @@ class Model:
             enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
 
             # Final projection
-            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1], activation=tf.nn.relu)  # log magnitude: (N, T, 1+hp.n_fft//2)
+            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
         return ppgs, preds_ppg, logits_ppg, preds_spec
 
@@ -168,6 +175,13 @@ class Model:
         else:
             x, y = get_batch(self.mode, self.batch_size)
             pred_specs, y_specs = sess.run([self(), self.y_spec], feed_dict={self.x_mfcc: x, self.y_spec: y})
+
+        # Convert log of magnitude to magnitude
+        if hp.log_mag:
+            pred_specs, y_specs = np.e**pred_specs, np.e**y_specs
+        else:
+            pred_specs, y_specs = np.where(pred_specs > 0, pred_specs, 0.), np.where(np.e**y_specs > 0, y_specs, 0.)
+
         return pred_specs, y_specs
 
     @staticmethod
@@ -182,12 +196,30 @@ class Model:
         ckpt = tf.train.latest_checkpoint(logdir)
         if ckpt:
             if not model_name:
-                model_name = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
+                model_name = Model.get_model_name(logdir)
             else:
                 ckpt = '{}/{}'.format(logdir, model_name)
 
             tf.train.Saver(var_list=var_list).restore(sess, ckpt)
             print('Model loaded. mode: {}, model_name: {}'.format(mode, model_name))
+
+    @staticmethod
+    def get_model_name(logdir):
+        path = '{}/checkpoint'.format(logdir)
+        if os.path.exists(path):
+            model_name = open(path, 'r').read().split('"')[1]
+        else:
+            model_name = None
+        return model_name
+
+    @staticmethod
+    def get_global_step(logdir):
+        model_name = Model.get_model_name(logdir)
+        if model_name:
+            gs = int(model_name.split('_')[3])
+        else:
+            gs = 0
+        return gs
 
     @staticmethod
     def all_model_names(logdir):

@@ -12,7 +12,7 @@ sr = 22050
 n_fft = 4096
 len_hop = n_fft / 4
 write_wav = True
-plot_wav = False
+plot_wav = True
 plot_spec = True
 
 # Waveforms
@@ -25,8 +25,8 @@ spec_empha = librosa.stft(wav_empha, n_fft=n_fft, hop_length=len_hop)
 
 # Write wav
 if write_wav:
-    write(wav, sr, 'original.wav')
-    write(wav_empha, sr, 'preemphasized.wav')
+    write(wav, sr, 'original2.wav')
+    write(wav_empha, sr, 'preemphasized2.wav')
 
 # Plot waveforms
 if plot_wav:

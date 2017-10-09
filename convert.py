@@ -19,10 +19,10 @@ def convert(logdir='logdir/train2', queue=True):
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,
-        device_count={'CPU': 1, 'GPU': 1},
+        device_count={'CPU': 1, 'GPU': 0},
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            per_process_gpu_memory_fraction=1
+            per_process_gpu_memory_fraction=0.6
         ),
     )
     with tf.Session(config=session_conf) as sess:
@@ -35,12 +35,10 @@ def convert(logdir='logdir/train2', queue=True):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        model_name = open('{}/checkpoint'.format(logdir), 'r').read().split('"')[1]
-        gs = int(model_name.split('_')[3])
+        gs = Model.get_global_step(logdir)
 
         pred_specs, y_specs = model.convert(sess)
-        specs = np.where(pred_specs < 0, 0., pred_specs)
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), specs))
+        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
         # Write the result
@@ -57,5 +55,5 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir/train2')
+    convert(logdir='logdir_log/train2')
     print("Done")

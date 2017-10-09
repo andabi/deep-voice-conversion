@@ -9,6 +9,7 @@ from pydub import AudioSegment
 import os
 import librosa
 import soundfile as sf
+import numpy as np
 
 
 def read(path, sr, mono=False):
@@ -41,3 +42,29 @@ def split_path(path):
     basepath, filename = os.path.split(path)
     filename, extension = os.path.splitext(filename)
     return basepath, filename, extension
+
+
+def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=None, length=None):
+    '''
+
+    :param mag: [f, t]
+    :param n_fft: n_fft
+    :param win_length: window length
+    :param hop_length: hop length
+    :param num_iters: num of iteration when griffin-lim reconstruction
+    :param phase_angle: phase angle
+    :param length: length of wav
+    :return: 
+    '''
+    assert (num_iters > 0)
+    if phase_angle is None:
+        phase_angle = np.pi * np.random.rand(*mag.shape)
+    spec = mag * np.exp(1.j * phase_angle)
+    for i in range(num_iters):
+        wav = librosa.istft(spec, win_length=win_length, hop_length=hop_length, length=length)
+        if i != num_iters - 1:
+            spec = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+            _, phase = librosa.magphase(spec)
+            phase_angle = np.angle(phase)
+            spec = mag * np.exp(1.j * phase_angle)
+    return wav

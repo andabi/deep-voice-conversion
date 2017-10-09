@@ -28,6 +28,7 @@ class Hyperparams:
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
+    log_mag = True
 
     # default
     batch_size = 32
@@ -36,10 +37,10 @@ class Hyperparams:
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 5
+        save_per_epoch = 10
 
     class test:
         batch_size = 32
 
     class convert:
-        batch_size = 10
+        batch_size = 3

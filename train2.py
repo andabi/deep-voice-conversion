@@ -28,7 +28,7 @@ def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            # per_process_gpu_memory_fraction=1,
+            per_process_gpu_memory_fraction=0.6,
         ),
     )
     # Training
