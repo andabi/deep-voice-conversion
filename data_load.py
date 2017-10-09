@@ -35,8 +35,8 @@ def load_data(mode):
         wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')[-100:]
     elif mode == "convert":  # source speaker arctic.bdl (male)
         # wav_files = glob.glob('datasets/arctic/bdl/*.wav')
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav')
-        wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')
+        wav_files = glob.glob('datasets/arctic/slt/*.wav')
+        # wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')
     return wav_files
 
 
@@ -81,14 +81,14 @@ def get_batch_queue(mode, batch_size):
             x, y = get_mfccs_and_spectrogram_queue(inputs=wav_file,
                                                    dtypes=[tf.float32, tf.float32],
                                                    capacity=2048,
-                                                   num_threads=32)
+                                                   num_threads=64)
 
             # create batch queues
             x, y = tf.train.batch([x, y],
                                 shapes=[(None, hp.n_mfcc), (None, 1+hp.n_fft//2)],
-                                num_threads=32,
+                                num_threads=64,
                                 batch_size=batch_size,
-                                capacity=batch_size * 32,
+                                capacity=batch_size * 64,
                                 dynamic_pad=True)
 
             return x, y, num_batch
@@ -147,5 +147,5 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, Trim=True)
+    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, trim=True)
     return mfccs, spectrogram

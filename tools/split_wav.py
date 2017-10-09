@@ -4,7 +4,7 @@
 import librosa
 import glob
 import os
-import soundfile as sf
+from audio_utils import read, write, split_path
 
 
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
@@ -21,31 +21,11 @@ def split(wav, top_db):
     return wavs
 
 
-def read(path, sr):
-    wav, _ = librosa.load(path, mono=True, sr=sr)
-    return wav
-
-
-def write(wav, sr, path, format='wav', subtype='PCM_16'):
-    sf.write(path, wav, sr, format=format, subtype=subtype)
-
-
-def split_path(path):
-    '''
-    'a/b/c.wav' => ('a/b', 'c', 'wav')
-    :param path: filepath = 'a/b/c.wav'
-    :return: basename, filename, and extension = ('a/b', 'c', 'wav')
-    '''
-    basepath, filename = os.path.split(path)
-    filename, extension = os.path.splitext(filename)
-    return basepath, filename, extension
-
-
 num_files = num_files_split = 0
 max_len = max_len_split = 0
 min_len = min_len_split = float('inf')
 for filepath in glob.glob('{}/*.wav'.format(src_path)):
-    wav = read(filepath, sr)
+    wav = read(filepath, sr, mono=True)
     split_wavs = split(wav, top_db)
     if not os.path.exists(target_path):
         os.mkdir(target_path)

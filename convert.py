@@ -44,8 +44,8 @@ def convert(logdir='logdir/train2', queue=True):
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
         # Write the result
-        tf.summary.audio('orig', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
-        tf.summary.audio('pred', audio, hp.sr, max_outputs=hp.convert.batch_size)
+        tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
+        tf.summary.audio('B', audio, hp.sr, max_outputs=hp.convert.batch_size)
         #     write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
         #     write('outputs/{}_{}_origin.wav'.format(mname, i), hp.sr, y_audio)
 
@@ -57,5 +57,5 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir_relu/train2')
+    convert(logdir='logdir/train2')
     print("Done")

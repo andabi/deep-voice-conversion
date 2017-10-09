@@ -28,7 +28,7 @@ def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-            per_process_gpu_memory_fraction=1,
+            # per_process_gpu_memory_fraction=1,
         ),
     )
     # Training
@@ -66,5 +66,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    main(logdir1='logdir/train1', logdir2='logdir_split/train2')
+    main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True)
     print("Done")

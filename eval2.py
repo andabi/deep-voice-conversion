@@ -7,9 +7,9 @@ from data_load import *
 from models import Model
 
 
-def eval(logdir='logdir/train2'):
+def eval(logdir='logdir/train2', queue=True):
     # Load graph
-    model = Model(mode="test2", batch_size=hp.test.batch_size)
+    model = Model(mode="test2", batch_size=hp.test.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -48,5 +48,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir_relu/train2')
+    eval(logdir='logdir_split/train2')
     print("Done")

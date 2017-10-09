@@ -42,4 +42,4 @@ class Hyperparams:
         batch_size = 32
 
     class convert:
-        batch_size = 3
+        batch_size = 10
