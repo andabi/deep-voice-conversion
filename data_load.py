@@ -24,19 +24,19 @@ def load_data(mode):
       `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
     '''
     if mode == "train1":
-        wav_files = glob.glob('datasets/timit/TIMIT/TRAIN/*/*/*.wav')
+        wav_files = glob.glob('{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(hp.data_path))
     elif mode == "test1":
-        wav_files = glob.glob('datasets/timit/TIMIT/TEST/*/*/*.wav')
+        wav_files = glob.glob('{}/timit/TIMIT/TEST/*/*/*.wav'.format(hp.data_path))
     elif mode == "train2":  # target speaker arctic.slt (female)
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav')[:-10]
-        wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')[:-100]
+        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))[:-10]
+        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[:-100]
     elif mode == "test2": # target speaker arctic.slt (female)
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav')[-10:]
-        wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')[-100:]
+        # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
+        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
     elif mode == "convert":  # source speaker arctic.bdl (male)
-        wav_files = glob.glob('datasets/arctic/bdl/*.wav')
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav')
-        # wav_files = glob.glob('datasets/kate/sense_and_sensibility_split/*.wav')
+        # wav_files = glob.glob('{}/arctic/bdl/*.wav'.format(hp.data_path))
+        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
+        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))
     return wav_files
 
 
@@ -91,7 +91,7 @@ def get_batch_queue(mode, batch_size):
                                 capacity=batch_size * 64,
                                 dynamic_pad=True)
 
-            return x, y, num_batch
+        return x, y, num_batch
 
 
 def get_batch(mode, batch_size):
@@ -126,7 +126,11 @@ def _get_zero_padded(list_of_arrays):
         max_len = max(len(d), max_len)
     for d in list_of_arrays:
         num_pad = max_len - len(d)
-        padded = np.pad(d, pad_width=((0, num_pad), (0, 0)), mode="constant", constant_values=0)
+        pad_width = [(0, num_pad)]
+        for _ in range(d.ndim - 1):
+            pad_width.append((0, 0))
+        pad_width = tuple(pad_width)
+        padded = np.pad(d, pad_width=pad_width, mode="constant", constant_values=0)
         batch.append(padded)
     return np.array(batch)
 

@@ -8,17 +8,19 @@ from tqdm import tqdm
 
 import tensorflow as tf
 from models import Model
+import convert, eval2
+from data_load import get_batch
 
 
 def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
-    model = Model(mode="train2", batch_size=hp.train.batch_size, queue=queue)
+    model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
 
     # Training Scheme
     global_step = tf.Variable(0, name='global_step', trainable=False)
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train2.lr)
     var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
     train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
 
@@ -41,17 +43,28 @@ def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(1, hp.train.num_epochs + 1):
+        for epoch in range(1, hp.train2.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
-                # TODO without queue
-                sess.run(train_op)
+                if queue:
+                    sess.run(train_op)
+                else:
+                    x, y = get_batch(model.mode, model.batch_size)
+                    sess.run(train_op, feed_dict={model.x_mfcc: x, model.y_spec: y})
 
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
             writer.add_summary(summ, global_step=gs)
 
-            if epoch % hp.train.save_per_epoch == 0:
+            if epoch % hp.train2.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
+
+                # Eval at every n epochs
+                with tf.Graph().as_default():
+                    eval2.eval(logdir2, queue=False)
+
+                # Convert at every n epochs
+                with tf.Graph().as_default():
+                    convert.convert(logdir2, queue=False)
 
         writer.close()
         coord.request_stop()

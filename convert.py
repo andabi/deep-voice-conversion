@@ -11,6 +11,7 @@ from scipy.io.wavfile import write
 from utils import *
 from models import Model
 from tqdm import tqdm
+from data_load import get_batch
 
 
 def convert(logdir='logdir/train2', queue=True):
@@ -37,6 +38,19 @@ def convert(logdir='logdir/train2', queue=True):
 
         gs = Model.get_global_step(logdir)
 
+        if queue:
+            pred_specs, y_specs = sess.run([model(), model.y_spec])
+        else:
+            x, y = get_batch(model.mode, model.batch_size)
+            pred_specs, y_specs = sess.run([model(), model.y_spec], feed_dict={model.x_mfcc: x, model.y_spec: y})
+
+        # Convert log of magnitude to magnitude
+        if hp.log_mag:
+            pred_specs, y_specs = np.e ** pred_specs, np.e ** y_specs
+        else:
+            pred_specs = np.where(pred_specs < 0, 0., pred_specs)
+            y_specs = np.where(pred_specs < 0, 0., y_specs)
+
         pred_specs, y_specs = model.convert(sess)
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
@@ -55,5 +69,5 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir_log/train2')
+    convert(logdir='logdir/train2')
     print("Done")

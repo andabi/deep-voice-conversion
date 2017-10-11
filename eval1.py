@@ -7,9 +7,9 @@ from data_load import *
 from models import Model
 
 
-def eval(logdir='logdir/train1'):
+def eval(logdir='logdir/train1', queue=True):
     # Load graph
-    model = Model(mode="test1", batch_size=hp.test.batch_size)
+    model = Model(mode="test1", batch_size=hp.test1.batch_size, queue=queue)
 
     # Accuracy
     acc_op = model.acc_net1()
@@ -34,7 +34,11 @@ def eval(logdir='logdir/train1'):
         sess.run(tf.global_variables_initializer())
         model.load_variables(sess, 'train1', logdir=logdir)
 
-        summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
+        if queue:
+            summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
+        else:
+            x, y = get_batch(model.mode, model.batch_size)
+            summ, acc, loss = sess.run([summ_op, acc_op, loss_op], feed_dict={model.x_mfcc: x, model.y_ppgs: y})
 
         writer.add_summary(summ)
 
@@ -55,5 +59,5 @@ def summaries(acc, loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir/train1')
+    eval(logdir='logdir/train1', queue=False)
     print("Done")

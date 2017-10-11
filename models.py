@@ -9,6 +9,7 @@ import numpy as np
 import sys
 import os
 
+
 class Model:
     def __init__(self, mode=None, batch_size=hp.batch_size, queue=True):
         '''
@@ -20,11 +21,15 @@ class Model:
           `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
         '''
 
-        # TODO refactoring
         self.mode = mode
         self.batch_size = batch_size
         self.queue = queue
         self.is_training = False
+
+        self.x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
+        self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
+        self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
+        self.num_batch = 1
 
         if queue:
             # Inputs
@@ -40,16 +45,10 @@ class Model:
                 self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
             else:  # `convert`
                 self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-        else:
-            self.x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
-            self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None, None))
-            self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
-            self.num_batch = 1
 
         # Convert to log of magnitude
         if hp.log_mag:
             self.y_spec = tf.log(self.y_spec + sys.float_info.epsilon)
-            # self.y_spec = tf.where(tf.greater(self.y_spec, 0.), tf.log(self.y_spec),
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
@@ -180,7 +179,8 @@ class Model:
         if hp.log_mag:
             pred_specs, y_specs = np.e**pred_specs, np.e**y_specs
         else:
-            pred_specs, y_specs = np.where(pred_specs > 0, pred_specs, 0.), np.where(np.e**y_specs > 0, y_specs, 0.)
+            pred_specs = np.where(pred_specs < 0, 0., pred_specs)
+            y_specs = np.where(pred_specs < 0, 0., y_specs)
 
         return pred_specs, y_specs
 

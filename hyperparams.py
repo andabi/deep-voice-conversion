@@ -28,18 +28,31 @@ class Hyperparams:
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
-    log_mag = True
+    log_mag = False
 
     # default
     batch_size = 32
 
-    class train:
+    # path
+    data_path = '/data/private/vc/datasets'
+    logdir_path = '/data/private/vc'
+
+    class train1:
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 10
+        save_per_epoch = 20
 
-    class test:
+    class train2:
+        batch_size = 32
+        lr = 0.0005
+        num_epochs = 10000
+        save_per_epoch = 2
+
+    class test1:
+        batch_size = 32
+
+    class test2:
         batch_size = 32
 
     class convert:

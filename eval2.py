@@ -9,7 +9,7 @@ from models import Model
 
 def eval(logdir='logdir/train2', queue=True):
     # Load graph
-    model = Model(mode="test2", batch_size=hp.test.batch_size, queue=queue)
+    model = Model(mode="test2", batch_size=hp.test2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -31,7 +31,11 @@ def eval(logdir='logdir/train2', queue=True):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        summ, loss = sess.run([summ_op, loss_op])
+        if queue:
+            summ, loss = sess.run([summ_op, loss_op])
+        else:
+            x, y = get_batch(model.mode, model.batch_size)
+            summ, loss = sess.run([summ_op, loss_op], feed_dict={model.x_mfcc: x, model.y_spec: y})
 
         writer.add_summary(summ)
         writer.close()
@@ -48,5 +52,5 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir_split/train2')
+    eval(logdir='logdir/train2', queue=False)
     print("Done")

@@ -139,7 +139,7 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_duration_in_secs=2):
+def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_duration_in_secs=1):
     '''This is applied in `train2` or `test2` phase.
     '''
     # Load
@@ -151,7 +151,7 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_durati
 
     # Random crop
     if random_crop:
-        y = apply_random_crop(y, hp.sr, crop_duration_in_secs)
+        y = wav_random_crop(y, hp.sr, crop_duration_in_secs)
 
     # Get spectrogram
     D = librosa.stft(y=y,
@@ -172,11 +172,11 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_durati
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
 
-def get_mfccs_and_phones(wav_file):
+def get_mfccs_and_phones(wav_file, trim=True, random_crop=True, crop_timesteps=201):
     '''This is applied in `train1` or `test1` phase.
     '''
     # Get MFCCs
-    mfccs, _ = get_mfccs_and_spectrogram(wav_file, trim=False)
+    mfccs, _ = get_mfccs_and_spectrogram(wav_file, trim=False, random_crop=False)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -193,11 +193,19 @@ def get_mfccs_and_phones(wav_file):
         bnd_list.append(bnd)
 
     # Trim
-    start, end = bnd_list[1], bnd_list[-1]
-    mfccs = mfccs[start:end]
-    phns = phns[start:end]
+    if trim:
+        start, end = bnd_list[1], bnd_list[-1]
+        mfccs = mfccs[start:end]
+        phns = phns[start:end]
+        assert (len(mfccs) == len(phns))
 
-    assert (len(mfccs) == len(phns))
+    # Random crop
+    if random_crop:
+        start = np.random.choice(range(np.maximum(1, len(mfccs) - crop_timesteps)), 1)[0]
+        end = start + crop_timesteps
+        mfccs = mfccs[start:end]
+        phns = phns[start:end]
+        assert (len(mfccs) == len(phns))
 
     return mfccs, phns
 
@@ -228,22 +236,6 @@ def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=N
     return wav
 
 
-# def spectrogram2wav(spectrogram):
-#     '''
-#     spectrogram: [t, f], i.e. [t, nfft // 2 + 1]
-#     '''
-#     spectrogram = spectrogram.T  # [f, t]
-#     X_best = copy.deepcopy(spectrogram)  # [f, t]
-#     for i in range(hp.n_iter):
-#         X_t = invert_spectrogram(X_best)
-#         est = librosa.stft(X_t, hp.n_fft, hp.hop_length, win_length=hp.win_length)  # [f, t]
-#         phase = est / np.maximum(1e-8, np.abs(est))  # [f, t]
-#         X_best = spectrogram * phase  # [f, t]
-#     X_t = invert_spectrogram(X_best)
-#
-#     return np.real(X_t)
-
-
 def invert_spectrogram(spectrogram):
     '''
     spectrogram: [f, t]
@@ -260,7 +252,7 @@ def preemphasis(signal, coeff=0.97):
     return np.append(signal[0], signal[1:] - coeff * signal[:-1])
 
 
-def apply_random_crop(wav, sr, duration):
+def wav_random_crop(wav, sr, duration):
     assert(wav.ndim <= 2)
 
     target_len = sr * duration
