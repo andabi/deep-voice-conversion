@@ -42,7 +42,7 @@ def main(logdir='logdir/train1', queue=True):
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train1', logdir=logdir)
+        model.load(sess, 'train1', logdir=logdir)
 
         writer = tf.summary.FileWriter(logdir, sess.graph)
         coord = tf.train.Coordinator()

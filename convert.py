@@ -29,7 +29,7 @@ def convert(logdir='logdir/train2', queue=True):
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'convert', logdir=logdir)
+        model.load(sess, 'convert', logdir=logdir)
 
         writer = tf.summary.FileWriter(logdir, sess.graph)
 

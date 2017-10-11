@@ -185,23 +185,38 @@ class Model:
         return pred_specs, y_specs
 
     @staticmethod
-    def load_variables(sess, mode, logdir, model_name=None):
-        if mode == 'train1':
-            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-        elif mode == 'train2':
-            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-        else:  # convert
-            var_list = None
+    def load(sess, mode, logdir, logdir2=None):
 
+        def print_model_loaded(mode, logdir):
+            model_name = Model.get_model_name(logdir)
+            print('Model loaded. mode: {}, model_name: {}'.format(mode, model_name))
+
+        if mode in ['train1', 'test1']:
+            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
+            if Model._load_variables(sess, logdir, var_list=var_list):
+                print_model_loaded(mode, logdir)
+
+        elif mode == 'train2':
+            var_list1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
+            if Model._load_variables(sess, logdir, var_list=var_list1):
+                print_model_loaded(mode, logdir)
+
+            var_list2 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
+            if Model._load_variables(sess, logdir2, var_list=var_list2):
+                print_model_loaded(mode, logdir2)
+
+        elif mode in ['test2', 'convert']:
+            if Model._load_variables(sess, logdir, var_list=None):  # Load all variables
+                print_model_loaded(mode, logdir)
+
+    @staticmethod
+    def _load_variables(sess, logdir, var_list):
         ckpt = tf.train.latest_checkpoint(logdir)
         if ckpt:
-            if not model_name:
-                model_name = Model.get_model_name(logdir)
-            else:
-                ckpt = '{}/{}'.format(logdir, model_name)
-
             tf.train.Saver(var_list=var_list).restore(sess, ckpt)
-            print('Model loaded. mode: {}, model_name: {}'.format(mode, model_name))
+            return True
+        else:
+            return False
 
     @staticmethod
     def get_model_name(logdir):

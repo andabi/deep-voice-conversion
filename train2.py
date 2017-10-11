@@ -37,7 +37,7 @@ def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, mode='train2', logdir=logdir1)
+        model.load(sess, mode='train2', logdir=logdir1, logdir2=logdir2)
 
         writer = tf.summary.FileWriter(logdir2, sess.graph)
         coord = tf.train.Coordinator()

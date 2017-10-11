@@ -24,7 +24,7 @@ def eval(logdir='logdir/train2', queue=True):
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train2', logdir=logdir)
+        model.load(sess, 'test2', logdir=logdir)
 
         writer = tf.summary.FileWriter(logdir, sess.graph)
 

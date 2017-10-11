@@ -32,7 +32,7 @@ def eval(logdir='logdir/train1', queue=True):
 
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load_variables(sess, 'train1', logdir=logdir)
+        model.load(sess, 'train1', logdir=logdir)
 
         if queue:
             summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
@@ -59,5 +59,5 @@ def summaries(acc, loss):
 
 
 if __name__ == '__main__':
-    eval(logdir='logdir/train1', queue=False)
+    eval(logdir='logdir/train1', queue=True)
     print("Done")
