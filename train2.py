@@ -80,6 +80,6 @@ def summaries(loss):
 
 if __name__ == '__main__':
     logdir1 = '{}/logdir/train1'.format(hp.logdir_path)
-    logdir2 = '{}/logdir/train2'.format(hp.logdir_path)
+    logdir2 = '{}/logdir_log/train2'.format(hp.logdir_path)
     train(logdir1=logdir1, logdir2=logdir2)
     print("Done")

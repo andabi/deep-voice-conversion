@@ -45,7 +45,7 @@ def convert(logdir='logdir/train2', queue=True):
             pred_specs, y_specs = sess.run([model(), model.y_spec], feed_dict={model.x_mfcc: x, model.y_spec: y})
 
         # Convert log of magnitude to magnitude
-        if hp.log_mag:
+        if model.log_mag:
             pred_specs, y_specs = np.e ** pred_specs, np.e ** y_specs
         else:
             pred_specs = np.where(pred_specs < 0, 0., pred_specs)
@@ -69,6 +69,6 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    logdir = '{}/logdir/train2'.format(hp.logdir_path)
+    logdir = '{}/logdir_log/train2'.format(hp.logdir_path)
     convert(logdir=logdir)
     print("Done")

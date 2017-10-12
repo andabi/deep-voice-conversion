@@ -11,7 +11,7 @@ import os
 
 
 class Model:
-    def __init__(self, mode=None, batch_size=hp.batch_size, queue=True):
+    def __init__(self, mode=None, batch_size=hp.batch_size, queue=True, log_mag=True):
         '''
         mode: A string. One of the phases below:
           `train1`: TIMIT TRAIN waveform -> mfccs (inputs) -> PGGs -> phones (target) (ce loss)
@@ -30,6 +30,7 @@ class Model:
         self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
         self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
         self.num_batch = 1
+        self.log_mag = log_mag
 
         if queue:
             # Inputs
@@ -47,7 +48,7 @@ class Model:
                 self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
 
         # Convert to log of magnitude
-        if hp.log_mag:
+        if log_mag:
             self.y_spec = tf.log(self.y_spec + sys.float_info.epsilon)
 
         # Networks
@@ -176,7 +177,7 @@ class Model:
             pred_specs, y_specs = sess.run([self(), self.y_spec], feed_dict={self.x_mfcc: x, self.y_spec: y})
 
         # Convert log of magnitude to magnitude
-        if hp.log_mag:
+        if self.log_mag:
             pred_specs, y_specs = np.e**pred_specs, np.e**y_specs
         else:
             pred_specs = np.where(pred_specs < 0, 0., pred_specs)
@@ -222,7 +223,8 @@ class Model:
     def get_model_name(logdir):
         path = '{}/checkpoint'.format(logdir)
         if os.path.exists(path):
-            model_name = open(path, 'r').read().split('"')[1]
+            ckpt_path = open(path, 'r').read().split('"')[1]
+            _, model_name = os.path.split(ckpt_path)
         else:
             model_name = None
         return model_name
