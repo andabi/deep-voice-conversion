@@ -69,5 +69,6 @@ def convert(logdir='logdir/train2', queue=True):
 
 
 if __name__ == '__main__':
-    convert(logdir='logdir/train2')
+    logdir = '{}/logdir/train2'.format(hp.logdir_path)
+    convert(logdir=logdir)
     print("Done")

@@ -12,7 +12,7 @@ import convert, eval2
 from data_load import get_batch
 
 
-def main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
+def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
     model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
 
     # Loss
@@ -79,5 +79,7 @@ def summaries(loss):
 
 
 if __name__ == '__main__':
-    main(logdir1='logdir/train1', logdir2='logdir/train2', queue=True)
+    logdir1 = '{}/logdir/train1'.format(hp.logdir_path)
+    logdir2 = '{}/logdir/train2'.format(hp.logdir_path)
+    train(logdir1=logdir1, logdir2=logdir2)
     print("Done")

@@ -11,7 +11,7 @@ import eval1
 from data_load import get_batch
 
 
-def main(logdir='logdir/train1', queue=True):
+def train(logdir='logdir/train1', queue=True):
     model = Model(mode="train1", batch_size=hp.train1.batch_size, queue=queue)
 
     # Loss
@@ -72,5 +72,6 @@ def main(logdir='logdir/train1', queue=True):
         coord.join(threads)
 
 if __name__ == '__main__':
-    main(logdir='logdir/train1')
+    logdir = '{}/logdir/train1'.format(hp.logdir_path)
+    train(logdir=logdir)
     print("Done")
