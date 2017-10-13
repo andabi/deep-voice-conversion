@@ -9,7 +9,7 @@ from modules import *
 from models import Model
 import eval1
 from data_load import get_batch
-
+import argparse
 
 def train(logdir='logdir/train1', queue=True):
     model = Model(mode="train1", batch_size=hp.train1.batch_size, queue=queue)
@@ -71,7 +71,14 @@ def train(logdir='logdir/train1', queue=True):
         coord.request_stop()
         coord.join(threads)
 
+
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train1'.format(hp.logdir_path))
+    arguments = parser.parse_args()
+    return arguments
+
 if __name__ == '__main__':
-    logdir = '{}/logdir/train1'.format(hp.logdir_path)
-    train(logdir=logdir)
+    args = get_arguments()
+    train(logdir=args.logdir)
     print("Done")

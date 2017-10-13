@@ -34,9 +34,10 @@ def load_data(mode):
         # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
         wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
     elif mode == "convert":  # source speaker arctic.bdl (male)
-        # wav_files = glob.glob('{}/arctic/bdl/*.wav'.format(hp.data_path))
+        wav_files = glob.glob('{}/arctic/bdl/*.wav'.format(hp.data_path))
         # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
-        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))
+        # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
+        # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))
     return wav_files
 
 

@@ -10,6 +10,7 @@ import tensorflow as tf
 from models import Model
 import convert, eval2
 from data_load import get_batch
+import argparse
 
 
 def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
@@ -78,8 +79,14 @@ def summaries(loss):
     return tf.summary.merge_all()
 
 
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('logdir1', type=str, help='logdir1 path', default='{}/logdir/train1'.format(hp.logdir_path))
+    parser.add_argument('logdir2', type=str, help='logdir2 path', default='{}/logdir/train2'.format(hp.logdir_path))
+    arguments = parser.parse_args()
+    return arguments
+
 if __name__ == '__main__':
-    logdir1 = '{}/logdir/train1'.format(hp.logdir_path)
-    logdir2 = '{}/logdir_log/train2'.format(hp.logdir_path)
-    train(logdir1=logdir1, logdir2=logdir2)
+    args = get_arguments()
+    train(logdir1=args.logdir1, logdir2=args.logdir2)
     print("Done")

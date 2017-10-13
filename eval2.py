@@ -53,5 +53,5 @@ def summaries(loss):
 
 if __name__ == '__main__':
     logdir = '{}/logdir/train2'.format(hp.logdir_path)
-    eval(logdir=logdir)
+    eval(logdir=logdir, queue=True)
     print("Done")

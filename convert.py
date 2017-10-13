@@ -7,11 +7,11 @@ https://www.github.com/kyubyong/vc
 
 from __future__ import print_function
 
-from scipy.io.wavfile import write
-from utils import *
-from models import Model
-from tqdm import tqdm
+import argparse
+
 from data_load import get_batch
+from models import Model
+from utils import *
 
 
 def convert(logdir='logdir/train2', queue=True):
@@ -68,7 +68,14 @@ def convert(logdir='logdir/train2', queue=True):
         coord.join(threads)
 
 
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train2'.format(hp.logdir_path))
+    arguments = parser.parse_args()
+    return arguments
+
+
 if __name__ == '__main__':
-    logdir = '{}/logdir_log/train2'.format(hp.logdir_path)
-    convert(logdir=logdir)
+    args = get_arguments()
+    convert(logdir=args.logdir)
     print("Done")
