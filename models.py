@@ -1,17 +1,41 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-import tensorflow as tf
-from data_load import get_batch, get_batch_queue, load_vocab
-from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
-from hyperparams import Hyperparams as hp
-import numpy as np
-import sys
 import os
+import sys
+
+import tensorflow as tf
+
+from data_load import get_batch_queue, load_vocab
+from hyperparams import Hyperparams as hp
+from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
 
 
 class Model:
     def __init__(self, mode=None, batch_size=hp.batch_size, queue=True, log_mag=True):
+        self.mode = mode
+        self.batch_size = batch_size
+        self.queue = queue
+        self.log_mag = log_mag
+        self.is_training = self.get_is_training(mode)
+
+        # Input
+        self.x_mfcc, self.y_ppgs, self.y_spec, self.num_batch = self.get_input(mode, batch_size, queue)
+
+        # Convert to log of magnitude
+        if log_mag:
+            self.y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+        else:
+            self.y_log_spec = self.y_spec
+
+        # Networks
+        self.net_template = tf.make_template('net', self._net2)
+        self.ppgs, self.preds_ppgs, self.logits_ppgs, self.preds_spec = self.net_template()
+
+    def __call__(self):
+        return self.preds_spec
+
+    def get_input(self, mode, batch_size, queue):
         '''
         mode: A string. One of the phases below:
           `train1`: TIMIT TRAIN waveform -> mfccs (inputs) -> PGGs -> phones (target) (ce loss)
@@ -20,43 +44,27 @@ class Model:
           `test2`: ARCTIC SLT waveform -> mfccs -> PGGs (inputs) -> spectrogram (target)(accuracy)
           `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
         '''
+        if mode not in ('train1', 'test1', 'train2', 'test2', 'convert'):
+            raise Exception("invalid mode={}".format(mode))
 
-        self.mode = mode
-        self.batch_size = batch_size
-        self.queue = queue
-        self.is_training = False
-
-        self.x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
-        self.y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
-        self.y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
-        self.num_batch = 1
-        self.log_mag = log_mag
+        x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
+        y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
+        y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
+        num_batch = 1
 
         if queue:
-            # Inputs
-            if mode == "train1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-                self.x_mfcc, self.y_ppgs, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-                self.is_training = True
-            elif mode == "train2":  # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
-                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-                self.is_training = True
-            elif mode == "test1":  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
-                self.x_mfcc, self.y_ppgs, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-            elif mode == "test2":
-                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-            else:  # `convert`
-                self.x_mfcc, self.y_spec, self.num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+            if mode in ("train1", "test1"):  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
+                x_mfcc, y_ppgs, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+            elif mode in ("train2", "test2", "convert"): # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
+                x_mfcc, y_spec, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+        return x_mfcc, y_ppgs, y_spec, num_batch
 
-        # Convert to log of magnitude
-        if log_mag:
-            self.y_spec = tf.log(self.y_spec + sys.float_info.epsilon)
-
-        # Networks
-        self.net_template = tf.make_template('net', self._net2)
-        self.ppgs, self.preds_ppgs, self.logits_ppgs, self.preds_spec = self.net_template()
-
-    def __call__(self):
-        return self.preds_spec
+    def get_is_training(self, mode):
+        if mode in ('train1', 'train2'):
+            is_training = True
+        else:
+            is_training = False
+        return is_training
 
     def _net1(self):
         with tf.variable_scope('net1'):
@@ -154,36 +162,17 @@ class Model:
             enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
 
             # Final projection
-            preds_spec = tf.layers.dense(enc, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
+            preds_spec = tf.layers.dense(enc, self.y_log_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
         return ppgs, preds_ppg, logits_ppg, preds_spec
 
     def loss_net2(self):  # Loss
-        loss = tf.squared_difference(self.preds_spec, self.y_spec)
+        loss = tf.squared_difference(self.preds_spec, self.y_log_spec)
 
         # Mean loss
         loss = tf.reduce_mean(loss)
 
         return loss
-
-    def convert(self, sess):
-        if self.mode not in ('train2', 'test2', 'convert'):
-            raise Exception("invalid mode: {}".format(self.mode))
-
-        if self.queue:
-            pred_specs, y_specs = sess.run([self(), self.y_spec])
-        else:
-            x, y = get_batch(self.mode, self.batch_size)
-            pred_specs, y_specs = sess.run([self(), self.y_spec], feed_dict={self.x_mfcc: x, self.y_spec: y})
-
-        # Convert log of magnitude to magnitude
-        if self.log_mag:
-            pred_specs, y_specs = np.e**pred_specs, np.e**y_specs
-        else:
-            pred_specs = np.where(pred_specs < 0, 0., pred_specs)
-            y_specs = np.where(pred_specs < 0, 0., y_specs)
-
-        return pred_specs, y_specs
 
     @staticmethod
     def load(sess, mode, logdir, logdir2=None):

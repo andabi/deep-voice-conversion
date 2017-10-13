@@ -11,6 +11,7 @@ import eval1
 from data_load import get_batch
 import argparse
 
+
 def train(logdir='logdir/train1', queue=True):
     model = Model(mode="train1", batch_size=hp.train1.batch_size, queue=queue)
 

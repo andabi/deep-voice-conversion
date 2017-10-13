@@ -46,7 +46,7 @@ def get_batch_queue(mode, batch_size):
     mode: A string. Either `train1` | `test1` | `train2` | `test2` | `convert`.
     '''
 
-    if not mode in ('train1', 'test1', 'train2', 'test2', 'convert'):
+    if mode not in ('train1', 'test1', 'train2', 'test2', 'convert'):
         raise Exception("invalid mode={}".format(mode))
 
     with tf.device('/cpu:0'):
@@ -152,5 +152,5 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, trim=True)
+    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file)
     return mfccs, spectrogram
