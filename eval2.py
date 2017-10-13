@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from data_load import *
 from models import Model
+import argparse
 
 
 def eval(logdir='logdir/train2', queue=True):
@@ -51,7 +52,14 @@ def summaries(loss):
     return tf.summary.merge_all()
 
 
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train2'.format(hp.logdir_path))
+    arguments = parser.parse_args()
+    return arguments
+
+
 if __name__ == '__main__':
-    logdir = '{}/logdir_log/train2'.format(hp.logdir_path)
-    eval(logdir=logdir, queue=False)
+    args = get_arguments()
+    eval(logdir=args.logdir)
     print("Done")
