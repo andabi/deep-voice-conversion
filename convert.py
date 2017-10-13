@@ -39,17 +39,17 @@ def convert(logdir='logdir/train2', queue=True):
         gs = Model.get_global_step(logdir)
 
         if queue:
-            pred_specs, y_specs = sess.run([model(), model.y_spec])
+            pred_log_specs, y_log_spec = sess.run([model(), model.y_log_spec])
         else:
             x, y = get_batch(model.mode, model.batch_size)
-            pred_specs, y_specs = sess.run([model(), model.y_spec], feed_dict={model.x_mfcc: x, model.y_spec: y})
+            pred_log_specs, y_log_spec = sess.run([model(), model.y_log_spec], feed_dict={model.x_mfcc: x, model.y_spec: y})
 
         # Convert log of magnitude to magnitude
         if model.log_mag:
-            pred_specs, y_specs = np.e ** pred_specs, np.e ** y_specs
+            pred_specs, y_specs = np.e ** pred_log_specs, np.e ** y_log_spec
         else:
-            pred_specs = np.where(pred_specs < 0, 0., pred_specs)
-            y_specs = np.where(pred_specs < 0, 0., y_specs)
+            pred_specs = np.where(pred_log_specs < 0, 0., pred_log_specs)
+            y_specs = np.where(pred_specs < 0, 0., y_log_spec)
 
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
@@ -76,5 +76,7 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    convert(logdir=args.logdir)
+    logdir = args.logdir
+    print('logdir: {}'.format(logdir))
+    convert(logdir=logdir)
     print("Done")
