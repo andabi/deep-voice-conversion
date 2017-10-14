@@ -106,7 +106,8 @@ class Model:
 
             # Final linear projection
             logits = tf.layers.dense(enc, len(phn2idx))  # (N, T, V)
-            ppgs = tf.nn.softmax(logits / self.t)  # (N, T, V)
+            # ppgs = tf.nn.softmax(logits / self.t)  # (N, T, V)
+            ppgs = logits
             preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
 
         return ppgs, preds, logits

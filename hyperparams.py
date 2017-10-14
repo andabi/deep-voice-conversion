@@ -28,7 +28,7 @@ class Hyperparams:
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
-    t = 0.1  # temperature
+    t = 1.0  # temperature
 
     # default
     batch_size = 32
