@@ -12,12 +12,13 @@ from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
 
 
 class Model:
-    def __init__(self, mode=None, batch_size=hp.batch_size, queue=True, log_mag=True):
+    def __init__(self, mode=None, batch_size=hp.batch_size, queue=True, log_mag=True, t=hp.t):
         self.mode = mode
         self.batch_size = batch_size
         self.queue = queue
         self.log_mag = log_mag
         self.is_training = self.get_is_training(mode)
+        self.t = t  # temperature
 
         # Input
         self.x_mfcc, self.y_ppgs, self.y_spec, self.num_batch = self.get_input(mode, batch_size, queue)
@@ -105,7 +106,7 @@ class Model:
 
             # Final linear projection
             logits = tf.layers.dense(enc, len(phn2idx))  # (N, T, V)
-            ppgs = tf.nn.softmax(logits) # (N, T, V)
+            ppgs = tf.nn.softmax(logits / self.t)  # (N, T, V)
             preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
 
         return ppgs, preds, logits
