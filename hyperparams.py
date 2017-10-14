@@ -26,7 +26,7 @@ class Hyperparams:
     encoder_num_banks = 16
     decoder_num_banks = 8
     num_highwaynet_blocks = 4
-    norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
+    norm_type = None  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
     t = 1.0  # temperature
 
