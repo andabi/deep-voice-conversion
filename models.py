@@ -30,7 +30,7 @@ class Model:
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
-        self.ppgs, self.preds_ppgs, self.logits_ppgs, self.preds_spec = self.net_template()
+        self.ppgs, self.preds_ppg, self.logits_ppg, self.preds_spec = self.net_template()
 
     def __call__(self):
         return self.preds_spec
@@ -112,14 +112,14 @@ class Model:
 
     def loss_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppgs, labels=self.y_ppgs)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg, labels=self.y_ppgs)
         loss *= istarget
         loss = tf.reduce_mean(loss)
         return loss
 
     def acc_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_ppgs, self.y_ppgs)) * istarget)
+        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_ppg, self.y_ppgs)) * istarget)
         num_targets = tf.reduce_sum(istarget)
         acc = num_hits / num_targets
         return acc

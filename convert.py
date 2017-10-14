@@ -39,10 +39,10 @@ def convert(logdir='logdir/train2', queue=True):
         gs = Model.get_global_step(logdir)
 
         if queue:
-            pred_log_specs, y_log_spec = sess.run([model(), model.y_log_spec])
+            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs])
         else:
             x, y = get_batch(model.mode, model.batch_size)
-            pred_log_specs, y_log_spec = sess.run([model(), model.y_log_spec], feed_dict={model.x_mfcc: x, model.y_spec: y})
+            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs], feed_dict={model.x_mfcc: x, model.y_spec: y})
 
         # Convert log of magnitude to magnitude
         if model.log_mag:
@@ -53,6 +53,10 @@ def convert(logdir='logdir/train2', queue=True):
 
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
+
+        # Visualize PPGs
+        heatmap = np.expand_dims(ppgs, 3)  # channel=1
+        tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
 
         # Write the result
         tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
@@ -69,7 +73,7 @@ def convert(logdir='logdir/train2', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train2'.format(hp.logdir_path))
+    parser.add_argument('logdir', type=str, nargs='?', help='logdir path', default='{}/logdir/train2'.format(hp.logdir_path))
     arguments = parser.parse_args()
     return arguments
 
