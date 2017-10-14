@@ -150,7 +150,7 @@ class Model:
 
             ### Conv1D projections
             enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1")  # (N, T, E/2)
-            enc = normalize(enc, type="ins", is_training=self.is_training, activation_fn=tf.nn.relu)
+            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
             enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2")  # (N, T, E/2)
             enc += prenet_out  # (N, T, E/2) # residual connections
 
