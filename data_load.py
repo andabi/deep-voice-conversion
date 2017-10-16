@@ -28,11 +28,13 @@ def load_data(mode):
     elif mode == "test1":
         wav_files = glob.glob('{}/timit/TIMIT/TEST/*/*/*.wav'.format(hp.data_path))
     elif mode == "train2":  # target speaker arctic.slt (female)
+        wav_files = glob.glob('{}/kate/therese_raquin_split/*.wav'.format(hp.data_path))[:-100]
         # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))[:-10]
-        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[:-100]
+        # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[:-100]
     elif mode == "test2": # target speaker arctic.slt (female)
         # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
-        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
+        # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
+        wav_files = glob.glob('{}/kate/therese_raquin_split/*.wav'.format(hp.data_path))[-100:]
     elif mode == "convert":  # source speaker arctic.bdl (male)
         wav_files = glob.glob('{}/arctic/bdl/*.wav'.format(hp.data_path))
         # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
