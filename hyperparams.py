@@ -29,7 +29,7 @@ class Hyperparams:
     decoder_num_banks = 8
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
-    dropout_rate = 0.2
+    dropout_rate = 0.5
     t = 1.0  # temperature
 
     # default
