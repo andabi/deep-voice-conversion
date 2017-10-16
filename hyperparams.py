@@ -20,6 +20,7 @@ class Hyperparams:
     n_mfcc = 40
     n_iter = 30 # Number of inversion iterations
     n_mels = 128
+    crop_duration_in_secs = 2
 
     # model
     hidden_units = 256 # alias = E

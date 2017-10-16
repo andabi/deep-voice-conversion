@@ -139,7 +139,7 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_duration_in_secs=1):
+def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_duration=1):
     '''This is applied in `train2` or `test2` phase.
     '''
     # Load
@@ -151,7 +151,7 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_durati
 
     # Random crop
     if random_crop:
-        y = wav_random_crop(y, hp.sr, crop_duration_in_secs)
+        y = wav_random_crop(y, hp.sr, crop_duration)
 
     # Get spectrogram
     D = librosa.stft(y=y,
