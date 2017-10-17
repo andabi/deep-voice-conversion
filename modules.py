@@ -73,7 +73,7 @@ def normalize(inputs,
     if type=="bn":
         inputs_shape = inputs.get_shape()
         inputs_rank = inputs_shape.ndims
-        
+
         # use fused batch norm if inputs_rank in [2, 3, 4] as it is much faster.
         # pay attention to the fact that fused_batch_norm requires shape to be rank 4 of NHWC.
         if inputs_rank in [2, 3, 4]:
@@ -82,11 +82,11 @@ def normalize(inputs,
                 inputs = tf.expand_dims(inputs, axis=2)
             elif inputs_rank==3:
                 inputs = tf.expand_dims(inputs, axis=1)
-            
-            outputs = tf.contrib.layers.batch_norm(inputs=inputs, 
+
+            outputs = tf.contrib.layers.batch_norm(inputs=inputs,
                                                decay=decay,
-                                               center=True, 
-                                               scale=True, 
+                                               center=True,
+                                               scale=True,
                                                updates_collections=None,
                                                is_training=is_training,
                                                scope=scope,
@@ -99,21 +99,21 @@ def normalize(inputs,
             elif inputs_rank==3:
                 outputs = tf.squeeze(outputs, axis=1)
         else: # fallback to naive batch norm
-            outputs = tf.contrib.layers.batch_norm(inputs=inputs, 
+            outputs = tf.contrib.layers.batch_norm(inputs=inputs,
                                                decay=decay,
-                                               center=True, 
-                                               scale=True, 
+                                               center=True,
+                                               scale=True,
                                                updates_collections=None,
                                                is_training=is_training,
                                                scope=scope,
                                                reuse=reuse,
-                                               fused=False)    
+                                               fused=False)
     elif type in ("ln",  "ins"):
-        reduction_axis = -1 if type=="ln" else 1   
+        reduction_axis = -1 if type=="ln" else 1
         with tf.variable_scope(scope, reuse=reuse):
             inputs_shape = inputs.get_shape()
             params_shape = inputs_shape[-1:]
-        
+
             mean, variance = tf.nn.moments(inputs, [reduction_axis], keep_dims=True)
             # beta = tf.Variable(tf.zeros(params_shape))
             beta = tf.get_variable("beta", shape=params_shape, initializer=tf.zeros_initializer)
@@ -123,8 +123,11 @@ def normalize(inputs,
             outputs = gamma * normalized + beta
     else:
         outputs = inputs
-    
+
     return outputs
+    # return tf.layers.batch_normalization(inputs, training=is_training)
+
+
 
 def conv1d(inputs, 
            filters=None, 

@@ -21,9 +21,11 @@ def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
 
     # Training Scheme
     global_step = tf.Variable(0, name='global_step', trainable=False)
+
     optimizer = tf.train.AdamOptimizer(learning_rate=hp.train2.lr)
-    var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
-    train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
+    with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+        var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
+        train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
 
     # Summary
     summ_op = summaries(loss_op)
