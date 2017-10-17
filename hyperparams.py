@@ -49,7 +49,7 @@ class Hyperparams:
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 20
+        save_per_epoch = 50
 
     class test1:
         batch_size = 32
