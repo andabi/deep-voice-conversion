@@ -75,7 +75,7 @@ def train(logdir='logdir/train1', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train1'.format(hp.logdir_path))
+    parser.add_argument('logdir', type=str, help='logdir path', nargs='?', default='{}/logdir/train1'.format(hp.logdir_path))
     arguments = parser.parse_args()
     return arguments
 

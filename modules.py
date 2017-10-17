@@ -43,7 +43,6 @@ def normalize(inputs,
               decay=.999,
               epsilon=1e-8,
               is_training=True, 
-              activation_fn=None,
               reuse=None,
               scope="normalize"):
     '''Applies {batch|layer} normalization.
@@ -88,7 +87,6 @@ def normalize(inputs,
                                                decay=decay,
                                                center=True, 
                                                scale=True, 
-                                               activation_fn=activation_fn, 
                                                updates_collections=None,
                                                is_training=is_training,
                                                scope=scope,
@@ -105,7 +103,6 @@ def normalize(inputs,
                                                decay=decay,
                                                center=True, 
                                                scale=True, 
-                                               activation_fn=activation_fn, 
                                                updates_collections=None,
                                                is_training=is_training,
                                                scope=scope,
@@ -127,18 +124,15 @@ def normalize(inputs,
     else:
         outputs = inputs
     
-    if activation_fn:
-        outputs = activation_fn(outputs)
-                
     return outputs
 
 def conv1d(inputs, 
            filters=None, 
            size=1, 
-           rate=1, 
-           padding="SAME", 
+           rate=1,
+           padding="SAME",
            use_bias=False,
-           activation_fn=None,
+           activation_fn=tf.nn.relu,
            scope="conv1d",
            reuse=None):
     '''
@@ -186,13 +180,13 @@ def conv1d_banks(inputs, K=16, num_units=None, norm_type=None, is_training=True,
       A 3d tensor with shape of [N, T, K*Hp.embed_size//2].
     '''
     with tf.variable_scope(scope, reuse=reuse):
-        outputs = conv1d(inputs, num_units, 1) # k=1
+        outputs = conv1d(inputs, num_units, 1, activation_fn=tf.nn.relu) # k=1
+        outputs = normalize(outputs, type=norm_type, is_training=is_training)
         for k in range(2, K+1): # k = 2...K
             with tf.variable_scope("num_{}".format(k)):
-                output = conv1d(inputs, num_units, k)
+                output = conv1d(inputs, num_units, k, activation_fn=tf.nn.relu)
+                output = normalize(output, type=norm_type, is_training=is_training)
                 outputs = tf.concat((outputs, output), -1)
-        outputs = normalize(outputs, type=norm_type, is_training=is_training,
-                            activation_fn=tf.nn.relu)
     return outputs # (N, T, Hp.embed_size//2*K)
 
 def gru(inputs, num_units=None, bidirection=False, seqlens=None, scope="gru", reuse=None):
