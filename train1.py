@@ -2,7 +2,7 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-from hyperparams import Hyperparams as hp
+from hyperparams import Hyperparams as hp, logdir_path
 from tqdm import tqdm
 
 from modules import *
@@ -77,7 +77,7 @@ def train(logdir='logdir/train1', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, help='logdir path', nargs='?', default='{}/logdir/train1'.format(hp.logdir_path))
+    parser.add_argument('logdir', type=str, help='logdir path', nargs='?', default='{}/logdir/train1'.format(logdir_path))
     arguments = parser.parse_args()
     return arguments
 

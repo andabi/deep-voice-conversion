@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-from hyperparams import Hyperparams as hp
+from hyperparams import Hyperparams as hp, logdir_path
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -83,8 +83,8 @@ def summaries(loss):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir1', type=str, help='logdir1 path', default='{}/logdir/train1'.format(hp.logdir_path))
-    parser.add_argument('logdir2', type=str, help='logdir2 path', default='{}/logdir/train2'.format(hp.logdir_path))
+    parser.add_argument('logdir1', type=str, help='logdir1 path', default='{}/logdir/train1'.format(logdir_path))
+    parser.add_argument('logdir2', type=str, help='logdir2 path', default='{}/logdir/train2'.format(logdir_path))
     arguments = parser.parse_args()
     return arguments
 

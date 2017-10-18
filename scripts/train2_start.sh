@@ -9,8 +9,9 @@ fi
 case1=$1
 case2=$2
 gpu=$3
-logdir1="/data/private/vc/logdir_$case1/train1"
-logdir2="/data/private/vc/logdir_$case2/train2"
+base_logdir="."
+logdir1="$base_logdir/logdir_$case1/train1"
+logdir2="$base_logdir/logdir_$case2/train2"
 
 echo "logdir1=$logdir1"
 echo "logdir2=$logdir2"

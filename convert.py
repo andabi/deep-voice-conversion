@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # /usr/bin/python2
-'''
-By kyubyong park. kbpark.linguist@gmail.com.
-https://www.github.com/kyubyong/vc
-'''
+
 
 from __future__ import print_function
 
@@ -12,6 +9,7 @@ import argparse
 from data_load import get_batch
 from models import Model
 from utils import *
+from hyperparams import logdir_path
 
 
 def convert(logdir='logdir/train2', queue=True):
@@ -77,7 +75,7 @@ def convert(logdir='logdir/train2', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, nargs='?', help='logdir path', default='{}/logdir/train2'.format(hp.logdir_path))
+    parser.add_argument('logdir', type=str, nargs='?', help='logdir path', default='{}/logdir/train2'.format(logdir_path))
     arguments = parser.parse_args()
     return arguments
 

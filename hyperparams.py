@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 #/usr/bin/python2
-'''
-By kyubyong park. kbpark.linguist@gmail.com. 
-https://www.github.com/kyubyong/vc
-'''
+
+
+# path
+## remote
+# data_path = '/data/private/vc/datasets'
+# logdir_path = '/data/private/vc'
+
+## local
+data_path_base = './datasets'
+logdir_path = '.'
 
 
 class Hyperparams:
-    '''Hyper parameters'''
 
     # signal processing
     sr = 22050 # Sampling rate.
@@ -25,42 +30,43 @@ class Hyperparams:
 
     # model
     hidden_units = 256 # alias = E
-    encoder_num_banks = 16
-    decoder_num_banks = 8
+    num_banks = 16
     num_highwaynet_blocks = 4
     norm_type = 'bn'  # a normalizer function. value: bn, ln, ins, or None
-    dropout_rate = 0.5
+    dropout_rate = 0.2
     t = 1.0  # temperature
 
     # default
     batch_size = 32
 
-    # path
-    ## remote
-    # data_path = '/data/private/vc/datasets'
-    # logdir_path = '/data/private/vc'
-
-    ## local
-    data_path = './datasets'
-    logdir_path = '.'
-
     class train1:
+        data_path = '{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(data_path_base)
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
         save_per_epoch = 2
 
+    class test1:
+        data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
+        batch_size = 32
+
     class train2:
+        data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))[:-10]
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
         save_per_epoch = 50
 
-    class test1:
-        batch_size = 32
-
     class test2:
+        data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
+        # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+        # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
         batch_size = 32
 
     class convert:
+        data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
+        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
+        # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
+        # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
         batch_size = 3

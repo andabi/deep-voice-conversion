@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 # /usr/bin/python2
-'''
-By kyubyong park. kbpark.linguist@gmail.com.
-https://www.github.com/kyubyong/vc
-'''
 
 from utils import *
 import glob
@@ -24,20 +20,15 @@ def load_data(mode):
       `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
     '''
     if mode == "train1":
-        wav_files = glob.glob('{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(hp.data_path))
+        wav_files = glob.glob(hp.train1.data_path)
     elif mode == "test1":
-        wav_files = glob.glob('{}/timit/TIMIT/TEST/*/*/*.wav'.format(hp.data_path))
-    elif mode == "train2":  # target speaker arctic.slt (female)
-        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))[:-10]
-        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[:-100]
-    elif mode == "test2": # target speaker arctic.slt (female)
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
-        wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
-    elif mode == "convert":  # source speaker arctic.bdl (male)
-        wav_files = glob.glob('{}/arctic/bdl/*.wav'.format(hp.data_path))
-        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
-        # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
-        # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
+        wav_files = glob.glob(hp.test1.data_path)
+    elif mode == "train2":
+        wav_files = glob.glob(hp.train2.data_path)
+    elif mode == "test2":
+        wav_files = glob.glob(hp.test2.data_path)
+    elif mode == "convert":
+        wav_files = glob.glob(hp.convert.data_path)
     return wav_files
 
 

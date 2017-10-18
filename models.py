@@ -81,7 +81,7 @@ class Model:
             # CBHG
             ## Conv1D banks
             enc = conv1d_banks(prenet_out,
-                               K=hp.encoder_num_banks,
+                               K=hp.num_banks,
                                num_units=hp.hidden_units // 2,
                                norm_type=hp.norm_type,
                                is_training=self.is_training)  # (N, T, K * E / 2)
@@ -140,7 +140,7 @@ class Model:
             # Encoder CBHG
             ## Conv1D bank
             enc = conv1d_banks(prenet_out,
-                               K=hp.encoder_num_banks,
+                               K=hp.num_banks,
                                num_units=hp.hidden_units // 2,
                                norm_type=hp.norm_type,
                                is_training=self.is_training)  # (N, T, K * E / 2)
