@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ $# -lt 1 ]
+  then
+    echo "insufficient arguments. case=$1"
+    exit 0
+fi
+
 case=$1
 logdir="/data/private/vc/logdir_$case"
 
