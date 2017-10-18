@@ -36,8 +36,13 @@ class Hyperparams:
     batch_size = 32
 
     # path
-    data_path = '/data/private/vc/datasets'
-    logdir_path = '/data/private/vc'
+    ## remote
+    # data_path = '/data/private/vc/datasets'
+    # logdir_path = '/data/private/vc'
+
+    ## local
+    data_path = './datasets'
+    logdir_path = '.'
 
     class train1:
         batch_size = 32
