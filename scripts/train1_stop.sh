@@ -7,7 +7,8 @@ if [ $# -lt 1 ]
 fi
 
 case=$1
-logdir="/data/private/vc/logdir_$case/train1"
+base_logdir="."
+logdir="$base_logdir/logdir_$case/train1"
 
 echo "logdir=$logdir"
 

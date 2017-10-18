@@ -52,7 +52,7 @@ class Hyperparams:
 
     class train2:
         data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-        # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))[:-10]
+        # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000

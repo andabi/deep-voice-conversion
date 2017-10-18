@@ -8,7 +8,8 @@ fi
 
 case=$1
 port=$2
-logdir="/data/private/vc/logdir_$case"
+base_logdir="."
+logdir="$base_logdir/logdir_$case"
 
 echo "start. case=$case, port=$port"
 

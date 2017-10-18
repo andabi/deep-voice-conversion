@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
-port=$1
-case=$2
+if [ $# -lt 2 ]
+  then
+    echo "insufficient arguments. case=$1, port=$2"
+    exit 0
+fi
 
-sh tensorboard_stop.sh $case
-sh tensorboard_start.sh $port $case
+case=$1
+port=$2
+
+sh scripts/tensorboard_stop.sh $case
+sh scripts/tensorboard_start.sh $case $port

@@ -7,7 +7,8 @@ if [ $# -lt 1 ]
 fi
 
 case=$1
-logdir="/data/private/vc/logdir_$case"
+base_logdir="."
+logdir="$base_logdir/logdir_$case"
 
 echo "stop. case=$case"
 
