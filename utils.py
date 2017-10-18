@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 
-import copy
-
 import librosa
 import numpy as np
 import tensorflow as tf
@@ -136,19 +134,22 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, duration=1, random_crop=False, crop_duration=1):
+def get_mfccs_and_spectrogram(wav_file, trim=True, duration=1, random_crop=False):
     '''This is applied in `train2` or `test2` phase.
     '''
     # Load
-    y, sr = librosa.load(wav_file, sr=hp.sr, duration=duration)
+    y, sr = librosa.load(wav_file, sr=hp.sr)
 
     # Trim
     if trim:
         y, _ = librosa.effects.trim(y)
 
-    # Random crop
+    # Fix duration
     if random_crop:
-        y = wav_random_crop(y, hp.sr, crop_duration)
+        y = wav_random_crop(y, hp.sr, duration)
+    else:
+        len = sr * duration
+        y = librosa.util.fix_length(y, len)
 
     # Get spectrogram
     D = librosa.stft(y=y,

@@ -103,7 +103,7 @@ def get_batch(mode, batch_size):
         if mode in ('train1', 'test1'):
             x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w), target_wavs)))
         else:
-            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, crop_duration=hp.crop_duration_in_secs), target_wavs)))
+            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, duration=hp.duration), target_wavs)))
         return x, y
 
 
@@ -143,5 +143,5 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, crop_duration=hp.crop_duration_in_secs)
+    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, duration=hp.duration)
     return mfccs, spectrogram

@@ -25,7 +25,7 @@ class Hyperparams:
     n_mfcc = 40
     n_iter = 30 # Number of inversion iterations
     n_mels = 128
-    crop_duration_in_secs = 1
+    duration = 1
     emphasis_magnitude = 1.2
 
     # model
@@ -52,6 +52,7 @@ class Hyperparams:
 
     class train2:
         data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+        # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
         # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
         batch_size = 32
         lr = 0.0005
