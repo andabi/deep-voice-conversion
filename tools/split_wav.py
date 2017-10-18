@@ -8,11 +8,11 @@ from audio_utils import read, write, split_path
 
 
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
-src_path = '/Users/avin/git/vc/datasets/kate/sense_and_sensibility'
+src_path = '/Users/avin/git/vc/datasets/kate/therese_raquin'
 target_path = '{}_split'.format(src_path)
-sr = 22050
+sr = 20000
 top_db = 30
-min_limit_len = sr  # 1s
+min_limit_len = 22050  # 1s
 
 
 def split(wav, top_db):

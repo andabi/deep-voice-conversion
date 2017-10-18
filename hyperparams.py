@@ -13,15 +13,21 @@ logdir_path = '.'
 
 
 class Hyperparams:
-
     # signal processing
-    sr = 22050 # Sampling rate.
-    frame_shift = 0.005 # seconds
-    frame_length = 0.025 # seconds
+    sr = 16000 # Sampling rate.
+    frame_shift = 0.005  # seconds
+    frame_length = 0.025  # seconds
+    n_fft = 512
+
+    # sr = 20000 # Sampling rate.
+    # frame_shift = 0.0125  # seconds
+    # frame_length = 0.05  # seconds
+    # n_fft = 1024
+
     hop_length = int(sr*frame_shift) # samples.  This is dependent on the frame_shift.
-    win_length = int(sr*frame_length) # =551. samples. This is dependent on the frame_length.
-    n_fft = 1024
-    preemphasis = 0.97 
+    win_length = int(sr*frame_length) # samples. This is dependent on the frame_length.
+
+    preemphasis = 0.97
     n_mfcc = 40
     n_iter = 30 # Number of inversion iterations
     n_mels = 128
@@ -32,7 +38,7 @@ class Hyperparams:
     hidden_units = 256 # alias = E
     num_banks = 16
     num_highwaynet_blocks = 4
-    norm_type = 'bn'  # a normalizer function. value: bn, ln, ins, or None
+    norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     dropout_rate = 0.2
     t = 1.0  # temperature
 

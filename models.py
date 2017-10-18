@@ -90,9 +90,10 @@ class Model:
             enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
 
             ## Conv1D projections
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1", activation_fn=tf.nn.relu)  # (N, T, E/2)
-            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training)
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2", activation_fn=None)  # (N, T, E/2)
+            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1")  # (N, T, E/2)
+            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
+            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2")  # (N, T, E/2)
+            # enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
             enc += prenet_out  # (N, T, E/2) # residual connections
 
             ## Highway Nets
@@ -149,9 +150,10 @@ class Model:
             enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
 
             ### Conv1D projections
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1", activation_fn=tf.nn.relu)  # (N, T, E/2)
-            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training)
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2", activation_fn=None)  # (N, T, E/2)
+            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1")  # (N, T, E/2)
+            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
+            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2")  # (N, T, E/2)
+            # enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
             enc += prenet_out  # (N, T, E/2) # residual connections
 
             ### Highway Nets
