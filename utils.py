@@ -139,11 +139,11 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_duration=1):
+def get_mfccs_and_spectrogram(wav_file, trim=True, duration=1, random_crop=False, crop_duration=1):
     '''This is applied in `train2` or `test2` phase.
     '''
     # Load
-    y, sr = librosa.load(wav_file, sr=hp.sr)
+    y, sr = librosa.load(wav_file, sr=hp.sr, duration=duration)
 
     # Trim
     if trim:
@@ -172,7 +172,7 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=True, crop_durati
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
 
-def get_mfccs_and_phones(wav_file, trim=True, random_crop=True, crop_timesteps=201):
+def get_mfccs_and_phones(wav_file, trim=True, random_crop=False, crop_timesteps=201):
     '''This is applied in `train1` or `test1` phase.
     '''
     # Get MFCCs
