@@ -134,32 +134,30 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, duration=1, random_crop=False):
+def get_mfccs_and_spectrogram(wav, sr, trim=True, duration=1, random_crop=False):
     '''This is applied in `train2` or `test2` phase.
     '''
-    # Load
-    y, sr = librosa.load(wav_file, sr=hp.sr)
 
     # Trim
     if trim:
-        y, _ = librosa.effects.trim(y)
+        wav, _ = librosa.effects.trim(wav)
 
     # Fix duration
     if random_crop:
-        y = wav_random_crop(y, hp.sr, duration)
+        wav = wav_random_crop(wav, hp.sr, duration)
     else:
         len = sr * duration
-        y = librosa.util.fix_length(y, len)
+        wav = librosa.util.fix_length(wav, len)
 
     # Get spectrogram
-    D = librosa.stft(y=y,
+    D = librosa.stft(y=wav,
                      n_fft=hp.n_fft,
                      hop_length=hp.hop_length,
                      win_length=hp.win_length)
     mag = np.abs(D)
 
     # MFCCs
-    y_preem = preemphasis(y, coeff=hp.preemphasis)
+    y_preem = preemphasis(wav, coeff=hp.preemphasis)
     mfccs = librosa.feature.mfcc(y=y_preem,
                                  sr=hp.sr,
                                  n_mfcc=hp.n_mfcc,
@@ -170,11 +168,15 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, duration=1, random_crop=False
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
 
-def get_mfccs_and_phones(wav_file, trim=True, random_crop=False, crop_timesteps=201):
+def get_mfccs_and_phones(wav_file, sr, trim=True, random_crop=False, crop_timesteps=201):
     '''This is applied in `train1` or `test1` phase.
     '''
+
+    # Load
+    wav, sr = librosa.load(wav_file, sr=sr)
+
     # Get MFCCs
-    mfccs, _ = get_mfccs_and_spectrogram(wav_file, trim=False, random_crop=False)
+    mfccs, _ = get_mfccs_and_spectrogram(wav, sr, trim=False, random_crop=False)
 
     # timesteps
     num_timesteps = mfccs.shape[0]

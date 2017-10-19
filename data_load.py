@@ -101,10 +101,32 @@ def get_batch(mode, batch_size):
         target_wavs = sample(wav_files, batch_size)
 
         if mode in ('train1', 'test1'):
-            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w), target_wavs)))
+            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.sr), target_wavs)))
         else:
-            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, duration=hp.duration), target_wavs)))
-        return x, y
+            def load_and_get_mfccs_and_spectrogram(wav_file):
+                wav, sr = librosa.load(wav_file, sr=hp.sr)
+                get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
+
+            x, y = map(_get_zero_padded, zip(*map(lambda w: load_and_get_mfccs_and_spectrogram(w), target_wavs)))
+    return x, y
+
+
+# TODO generalize for all mode
+def get_batch_per_wav(mode, batch_size):
+    with tf.device('/cpu:0'):
+        # Load data
+        wav_files = load_data(mode=mode)
+        wav_file = sample(wav_files, 1)[0]
+        wav, sr = librosa.load(wav_file, sr=hp.sr)
+
+        total_duration = hp.duration * batch_size
+        total_len = hp.sr * total_duration
+        wav = librosa.util.fix_length(wav, total_len)
+        len = hp.duration * hp.sr
+        batched = np.reshape(wav, (batch_size, len))
+
+        x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, sr, duration=hp.duration), batched)))
+    return x, y
 
 
 def _get_zero_padded(list_of_arrays):
@@ -133,7 +155,7 @@ def get_mfccs_and_phones_queue(wav_file):
        extracts mfccs (inputs), and phones (target), then enqueue them again.
        This is applied in `train1` or `test1` phase.
     '''
-    mfccs, phns = get_mfccs_and_phones(wav_file)
+    mfccs, phns = get_mfccs_and_phones(wav_file, hp.sr)
     return mfccs, phns
 
 
@@ -143,5 +165,6 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    mfccs, spectrogram = get_mfccs_and_spectrogram(wav_file, duration=hp.duration)
+    wav, sr = librosa.load(wav_file, sr=hp.sr)
+    mfccs, spectrogram = get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
     return mfccs, spectrogram

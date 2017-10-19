@@ -6,13 +6,14 @@ from __future__ import print_function
 
 import argparse
 
-from data_load import get_batch
+from data_load import get_batch_per_wav
 from models import Model
 from utils import *
 from hyperparams import logdir_path
+import datetime
 
 
-def convert(logdir='logdir/train2', queue=True):
+def convert(logdir='logdir/train2', queue=False):
     # Load graph
     model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
 
@@ -39,7 +40,7 @@ def convert(logdir='logdir/train2', queue=True):
         if queue:
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs])
         else:
-            x, y = get_batch(model.mode, model.batch_size)
+            x, y = get_batch_per_wav(model.mode, model.batch_size)
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs], feed_dict={model.x_mfcc: x, model.y_spec: y})
 
         # Convert log of magnitude to magnitude
@@ -59,6 +60,10 @@ def convert(logdir='logdir/train2', queue=True):
         # Visualize PPGs
         heatmap = np.expand_dims(ppgs, 3)  # channel=1
         tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
+
+        # Concatenate to a wav
+        y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
+        audio = np.reshape(audio, (1, audio.size), order='C')
 
         # Write the result
         tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
@@ -86,5 +91,11 @@ if __name__ == '__main__':
     logdir = '{}/logdir_{}/train2'.format(logdir_path, case)
 
     print('case: {}, logdir: {}'.format(case, logdir))
+
+    s = datetime.datetime.now()
+
     convert(logdir=logdir)
-    print("Done")
+
+    e = datetime.datetime.now()
+    diff = e - s
+    print("Done. elapsed time:{}s".format(diff.seconds))
