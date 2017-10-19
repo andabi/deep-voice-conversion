@@ -29,18 +29,17 @@ class Hyperparams:
 
     preemphasis = 0.97
     n_mfcc = 40
-    n_iter = 30 # Number of inversion iterations
+    n_iter = 60 # Number of inversion iterations
     n_mels = 128
     duration = 1
-    emphasis_magnitude = 1.2
 
     # model
     hidden_units = 256 # alias = E
     num_banks = 16
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
-    dropout_rate = 0.2
     t = 1.0  # temperature
+    dropout_rate = 0.2
 
     # default
     batch_size = 32
@@ -49,7 +48,7 @@ class Hyperparams:
         data_path = '{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(data_path_base)
         batch_size = 32
         lr = 0.0005
-        num_epochs = 10000
+        num_epochs = 1000
         save_per_epoch = 2
 
     class test1:
@@ -57,18 +56,15 @@ class Hyperparams:
         batch_size = 32
 
     class train2:
-        data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+        # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
         # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
-        # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
+        data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
         batch_size = 32
         lr = 0.0005
         num_epochs = 10000
-        save_per_epoch = 50
+        save_per_epoch = 100
 
     class test2:
-        data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
-        # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-        # wav_files = glob.glob('datasets/arctic/slt/*.wav'.format(hp.data_path))[-10:]
         batch_size = 32
 
     class convert:
@@ -76,4 +72,5 @@ class Hyperparams:
         # wav_files = glob.glob('{}/arctic/slt/*.wav'.format(hp.data_path))
         # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
         # wav_files = glob.glob('{}/kate/sense_and_sensibility_split/*.wav'.format(hp.data_path))[-100:]
-        batch_size = 3
+        batch_size = 4
+        emphasis_magnitude = 1.3

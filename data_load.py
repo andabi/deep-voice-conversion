@@ -24,9 +24,11 @@ def load_data(mode):
     elif mode == "test1":
         wav_files = glob.glob(hp.test1.data_path)
     elif mode == "train2":
-        wav_files = glob.glob(hp.train2.data_path)
+        testset_size = hp.test2.batch_size * 4
+        wav_files = glob.glob(hp.train2.data_path)[testset_size:]
     elif mode == "test2":
-        wav_files = glob.glob(hp.test2.data_path)
+        testset_size = hp.test2.batch_size * 4
+        wav_files = glob.glob(hp.train2.data_path)[:testset_size]
     elif mode == "convert":
         wav_files = glob.glob(hp.convert.data_path)
     return wav_files

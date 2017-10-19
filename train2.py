@@ -56,7 +56,6 @@ def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
 
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
-            writer.add_summary(summ, global_step=gs)
 
             if epoch % hp.train2.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
@@ -69,14 +68,16 @@ def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
                 with tf.Graph().as_default():
                     convert.convert(logdir2, queue=False)
 
+            writer.add_summary(summ, global_step=gs)
+
         writer.close()
         coord.request_stop()
         coord.join(threads)
 
 
 def summaries(loss):
-    for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
-        tf.summary.histogram(v.name, v)
+    # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
+    #     tf.summary.histogram(v.name, v)
     tf.summary.scalar('net2/train/loss', loss)
     return tf.summary.merge_all()
 
