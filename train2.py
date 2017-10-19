@@ -83,12 +83,15 @@ def summaries(loss):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir1', type=str, help='logdir1 path', default='{}/logdir/train1'.format(logdir_path))
-    parser.add_argument('logdir2', type=str, help='logdir2 path', default='{}/logdir/train2'.format(logdir_path))
+    parser.add_argument('case1', type=str, help='case1')
+    parser.add_argument('case2', type=str, help='case2')
     arguments = parser.parse_args()
     return arguments
 
 if __name__ == '__main__':
     args = get_arguments()
-    train(logdir1=args.logdir1, logdir2=args.logdir2)
+    case1, case2 = args.case1, args.case2
+    logdir1 = '{}/logdir_{}/train1'.format(logdir_path, case1)
+    logdir2 = '{}/logdir_{}/train2'.format(logdir_path, case2)
+    train(logdir1=logdir1, logdir2=logdir2)
     print("Done")

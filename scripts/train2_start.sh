@@ -9,12 +9,9 @@ fi
 case1=$1
 case2=$2
 gpu=$3
-base_logdir="."
-logdir1="$base_logdir/logdir_$case1/train1"
-logdir2="$base_logdir/logdir_$case2/train2"
 
-echo "logdir1=$logdir1"
-echo "logdir2=$logdir2"
+echo "case1=$case1"
+echo "case2=$case2"
 echo "gpu=$gpu"
 
 if [ ! -d "out" ]
@@ -22,5 +19,5 @@ if [ ! -d "out" ]
     mkdir out
 fi
 
-CUDA_VISIBLE_DEVICES=$gpu nohup python train2.py $logdir1 $logdir2 >> out/$case2.out &
+CUDA_VISIBLE_DEVICES=$gpu nohup python train2.py $case1 $case2 >> out/$case2.out &
 tail -f out/$case2.out

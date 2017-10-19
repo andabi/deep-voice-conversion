@@ -7,9 +7,8 @@ if [ $# -lt 1 ]
 fi
 
 case=$1
-base_logdir="."
-logdir="$base_logdir/logdir_$case/train2"
+logdir="logdir_$case/train2"
 
-echo "logdir=$logdir"
+echo "case=$case"
 
 for pid in $(ps -ef | grep "python" | grep "$logdir" | awk '{print $2}'); do kill $pid; done

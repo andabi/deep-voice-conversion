@@ -55,12 +55,14 @@ def summaries(loss):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, help='logdir path', default='{}/logdir/train2'.format(logdir_path))
+    parser.add_argument('case', type=str, help='case')
     arguments = parser.parse_args()
     return arguments
 
 
 if __name__ == '__main__':
     args = get_arguments()
-    eval(logdir=args.logdir)
+    case = args.case
+    logdir = '{}/logdir_{}/train2'.format(logdir_path, case)
+    eval(logdir=logdir)
     print("Done")

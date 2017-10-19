@@ -50,8 +50,8 @@ def convert(logdir='logdir/train2', queue=True):
             y_specs = np.where(pred_specs < 0, 0., y_log_spec)
 
         # Emphasize the magnitude
-        pred_specs = np.power(pred_specs, hp.emphasis_magnitude)
-        y_specs = np.power(y_specs, hp.emphasis_magnitude)
+        pred_specs = np.power(pred_specs, hp.convert.emphasis_magnitude)
+        y_specs = np.power(y_specs, hp.convert.emphasis_magnitude)
 
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
@@ -75,14 +75,16 @@ def convert(logdir='logdir/train2', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('logdir', type=str, nargs='?', help='logdir path', default='{}/logdir/train2'.format(logdir_path))
+    parser.add_argument('case', type=str, help='case')
     arguments = parser.parse_args()
     return arguments
 
 
 if __name__ == '__main__':
     args = get_arguments()
-    logdir = args.logdir
-    print('logdir: {}'.format(logdir))
+    case = args.case
+    logdir = '{}/logdir_{}/train2'.format(logdir_path, case)
+
+    print('case: {}, logdir: {}'.format(case, logdir))
     convert(logdir=logdir)
     print("Done")

@@ -13,6 +13,9 @@ logdir="$base_logdir/logdir_$case"
 
 echo "start. case=$case, port=$port"
 
+# Stop the existing first.
+sh scripts/tensorboard_stop.sh $case
+
 if [ ! -d "out" ]
   then
     mkdir out

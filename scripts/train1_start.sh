@@ -8,10 +8,8 @@ fi
 
 case=$1
 gpu=$2
-base_logdir="."
-logdir="$base_logdir/logdir_$case/train1"
 
-echo "logdir=$logdir"
+echo "case=$case"
 echo "gpu=$gpu"
 
 if [ ! -d "out" ]
@@ -19,5 +17,5 @@ if [ ! -d "out" ]
     mkdir out
 fi
 
-CUDA_VISIBLE_DEVICES=$gpu nohup python train1.py $logdir >> out/$case.out &
+CUDA_VISIBLE_DEVICES=$gpu nohup python train1.py $case >> out/$case.out &
 tail -f out/$case.out
