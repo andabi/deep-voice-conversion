@@ -2,13 +2,13 @@ default
 * no random crop, duration=1
 * sr=16000, n_fft=512, 25ms, 5ms
 * train1: default
+* arctic
 
 0: sense
-* sense dataset
+* diff: sense dataset
 * 데이터를 한정시켜서 각 데이터당 epoch를 늘림으로써 더 뾰족한 목소리가 나오는지 확인하기 위함
 
 1: arctic
-* diff: arctic dataset
 * arctic 데이터로 결과 확인
 
 2: raquin
@@ -18,3 +18,16 @@ default
 3: dropout
 * diff: dropout 0.5, arctic dataset
 * 드랍아웃을 통한 일반화로 테스트 정확도가 얼마나 높아지는지 보기 위함
+
+silence
+* diff: trim=False
+
+bn
+* diff: norm='bn'
+
+random_crop
+* diff: random_crop=True
+
+sense_x (x=model params)
+
+raquin_x
