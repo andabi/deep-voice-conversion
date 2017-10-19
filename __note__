@@ -1,0 +1,46 @@
+문제가 뭐였나?
+* random crop 제거한거?
+* 모델에 normalization 바로잡은거?
+* n_fft가 win_length랑 최대한 같은게 중요한거 같은데 조사 필요. 이게 어떻게 loss fn을 망가뜨리는지만 밝혀내면 된다. mfcc가 이상해지나?
+
+배운 것
+* spectrogram -> wav 변환시 magnitude에 어느 정도 emphasis를 주는 것은 잡음을 제거하는데 도움이 된다.
+* normalization before/after RELU 혹은 normalization 종류는 크게 영향을 미치지 않는다.
+* 각 모듈(net1, net2)에서 쓰는 sample rate는 같아야 한다.
+* CBHG는 tacotron 논문에도 언급되있듯이 overfitting 문제를 덜 겪는것 같다.
+
+가설
+* 데이터에 비해 모델 파라미터 수가 부족
+    * Random_crop을 오히려 제거 (데이터를 줄이는 효과)
+    * 더 작은 데이터셋 arctic으로 해보기
+    * 모델을 확장하거나 모델 파라미터 늘리기
+* dropout으로 좀 더 일반화
+** eval loss가 좀 더 떨어지나?
+* train1의 성능이 더 중요할 수 있음
+* Trim 부정확하게 한 부분?
+* lr를 더 작게 잡아야
+
+시도해 본 것
+* ppg 구할때 softmax에 온도를 높여 더 하드하게 => 별 차이 없거나 더 잘 안됨. 지금도 충분히 하드함
+
+시도해 볼만한 것
+* softmax 빼고
+* phone 경계부분을 soft하게 (timit은 hard)
+* adversarial training
+
+아이디어
+* conversion된 것으로 ppg loss 최소화
+
+트러블슈팅
+* queue insufficient element 문제
+    * 어떤 오류로 큐에 데이터가 안 들어오고 있는 상태
+    * queue를 disable 시키고 placeholder feed_dict 같은걸로 실행시켜봐야 정확한 원인을 알 수 있음
+* audioread nobackend error
+    * 다른 코덱이 필요할 때. wav가 16bit가 아니라 32bit이면 다른 코덱을 쓰는 듯
+
+엔지니어링 이슈
+* dataset 선택 파라미터로 설정 가능하게 hp에 적기. command line으로 받기
+* train1/train2 hp 나누기
+* 학습 재실행시 다시 쓸때도 epoch 이어서 쓰기
+* utils 패키지화
+    * https://wikidocs.net/1418
