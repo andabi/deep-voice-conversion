@@ -10,6 +10,7 @@ import os
 import librosa
 import soundfile as sf
 import numpy as np
+from scipy import signal
 
 
 def read(path, sr, mono=False):
@@ -68,3 +69,11 @@ def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=N
             phase_angle = np.angle(phase)
             spec = mag * np.exp(1.j * phase_angle)
     return wav
+
+
+def preemphasis(x, coeff=0.97):
+    return signal.lfilter([1, -coeff], [1], x)
+
+
+def inv_preemphasis(x, coeff=0.97):
+    return signal.lfilter([1], [1, -coeff], x)

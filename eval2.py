@@ -9,7 +9,7 @@ import argparse
 from hyperparams import logdir_path
 
 
-def eval(logdir='logdir/train2', queue=True):
+def eval(logdir='logdir/default/train2', queue=True):
     # Load graph
     model = Model(mode="test2", batch_size=hp.test2.batch_size, queue=queue)
 
@@ -63,6 +63,6 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     case = args.case
-    logdir = '{}/logdir_{}/train2'.format(logdir_path, case)
+    logdir = '{}/{}/train2'.format(logdir_path, case)
     eval(logdir=logdir)
     print("Done")

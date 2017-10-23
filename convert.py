@@ -13,7 +13,7 @@ from hyperparams import logdir_path
 import datetime
 
 
-def convert(logdir='logdir/train2', queue=False):
+def convert(logdir='logdir/default/train2', queue=False):
     # Load graph
     model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
 
@@ -57,6 +57,9 @@ def convert(logdir='logdir/train2', queue=False):
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
+        audio = inv_preemphasis(audio, coeff=hp.preemphasis)
+        y_audio = inv_preemphasis(y_audio, coeff=hp.preemphasis)
+
         # Visualize PPGs
         heatmap = np.expand_dims(ppgs, 3)  # channel=1
         tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
@@ -68,8 +71,6 @@ def convert(logdir='logdir/train2', queue=False):
         # Write the result
         tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
         tf.summary.audio('B', audio, hp.sr, max_outputs=hp.convert.batch_size)
-        #     write('outputs/{}_{}.wav'.format(mname, i), hp.sr, audio)
-        #     write('outputs/{}_{}_origin.wav'.format(mname, i), hp.sr, y_audio)
 
         writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
         writer.close()
@@ -88,7 +89,7 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     case = args.case
-    logdir = '{}/logdir_{}/train2'.format(logdir_path, case)
+    logdir = '{}/{}/train2'.format(logdir_path, case)
 
     print('case: {}, logdir: {}'.format(case, logdir))
 

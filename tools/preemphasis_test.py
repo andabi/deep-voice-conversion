@@ -2,10 +2,10 @@
 #!/usr/bin/env python
 
 import librosa.display
-import utils
 import numpy as np
 import matplotlib.pyplot as plt
-from audio_utils import read, write
+from audio_utils import read, write, preemphasis, inv_preemphasis
+import sys
 
 filename = '/Users/avin/git/vc/datasets/timit/TIMIT/TEST/DR1/FAKS0/SA1.wav'
 sr = 22050
@@ -17,7 +17,9 @@ plot_spec = True
 
 # Waveforms
 wav = read(filename, sr, mono=True)
-wav_empha = utils.preemphasis(wav)
+wav_empha = preemphasis(wav)
+diff = wav - inv_preemphasis(wav_empha)
+assert(np.all(np.less(diff, sys.float_info.epsilon)))
 
 # Spectrogram
 spec = librosa.stft(wav, n_fft=n_fft, hop_length=len_hop)

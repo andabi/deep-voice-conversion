@@ -1,5 +1,7 @@
+데이터가 오히려 많을 떄 over-average 되서 소리가 이도저도 아닌 느낌..
+
 silance training
-* train1
+* train1, train2에서 trim 제거하고 random_crop 추가
 
 문제가 뭐였나?
 * random crop 제거한거?
@@ -30,9 +32,10 @@ silance training
 * softmax 빼고
 * phone 경계부분을 soft하게 (timit은 hard)
 * adversarial training
+* train2 loss를 spectrogram이 아닌 mcep 기준으로 하면 다른가?
 
 아이디어
-* conversion된 것으로 ppg loss 최소화
+* train2에서 loss를 conversion 전후의 l2 + conversion 전후의 ppg
 
 트러블슈팅
 * queue insufficient element 문제
@@ -42,8 +45,12 @@ silance training
     * 다른 코덱이 필요할 때. wav가 16bit가 아니라 32bit이면 다른 코덱을 쓰는 듯
 
 엔지니어링 이슈
-* dataset 선택 파라미터로 설정 가능하게 hp에 적기. command line으로 받기
-* train1/train2 hp 나누기
+* case별 hp 세팅파일
+** dataset 선택 파라미터로 설정 가능하게 hp에 적기
+** train1/train2 model hp 나누기
+** 한꺼번에 학습 시작 스크립트
+* writer 합치기
+
 * 학습 재실행시 다시 쓸때도 epoch 이어서 쓰기
 * utils 패키지화
     * https://wikidocs.net/1418

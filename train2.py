@@ -13,7 +13,7 @@ from data_load import get_batch
 import argparse
 
 
-def train(logdir1='logdir/train1', logdir2='logdir/train2', queue=True):
+def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queue=True):
     model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
 
     # Loss
@@ -92,7 +92,7 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     case1, case2 = args.case1, args.case2
-    logdir1 = '{}/logdir_{}/train1'.format(logdir_path, case1)
-    logdir2 = '{}/logdir_{}/train2'.format(logdir_path, case2)
+    logdir1 = '{}/{}/train1'.format(logdir_path, case1)
+    logdir2 = '{}/{}/train2'.format(logdir_path, case2)
     train(logdir1=logdir1, logdir2=logdir2)
     print("Done")

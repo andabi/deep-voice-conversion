@@ -182,14 +182,13 @@ def conv1d_banks(inputs, K=16, num_units=None, norm_type=None, is_training=True,
       A 3d tensor with shape of [N, T, K*Hp.embed_size//2].
     '''
     with tf.variable_scope(scope, reuse=reuse):
-        with tf.variable_scope("num_1"):
-            outputs = conv1d(inputs, num_units, 1)  # k=1
-            outputs = normalize(outputs, type=norm_type, is_training=is_training, activation_fn=tf.nn.relu)
-        for k in range(2, K+1): # k = 2...K
+        outputs = []
+        for k in range(1, K+1):
             with tf.variable_scope("num_{}".format(k)):
                 output = conv1d(inputs, num_units, k)
                 output = normalize(output, type=norm_type, is_training=is_training, activation_fn=tf.nn.relu)
-            outputs = tf.concat((outputs, output), -1)
+            outputs.append(output)
+        outputs = tf.concat(outputs, -1)
     return outputs # (N, T, Hp.embed_size//2*K)
 
 def gru(inputs, num_units=None, bidirection=False, seqlens=None, scope="gru", reuse=None):

@@ -7,7 +7,7 @@ if [ $# -lt 1 ]
 fi
 
 case=$1
-logdir="logdir_$case"
+logdir="logdir/$case"
 
 echo "stop. case=$case"
 

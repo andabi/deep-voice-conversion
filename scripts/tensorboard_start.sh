@@ -8,8 +8,8 @@ fi
 
 case=$1
 port=$2
-base_logdir="."
-logdir="$base_logdir/logdir_$case"
+base_logdir="./logdir"
+logdir="$base_logdir/$case"
 
 echo "start. case=$case, port=$port"
 

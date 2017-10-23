@@ -107,7 +107,7 @@ def get_batch(mode, batch_size):
         else:
             def load_and_get_mfccs_and_spectrogram(wav_file):
                 wav, sr = librosa.load(wav_file, sr=hp.sr)
-                get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
+                return get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
 
             x, y = map(_get_zero_padded, zip(*map(lambda w: load_and_get_mfccs_and_spectrogram(w), target_wavs)))
     return x, y

@@ -6,6 +6,7 @@ from __future__ import print_function
 import librosa
 import numpy as np
 import tensorflow as tf
+from scipy import signal
 
 from hyperparams import Hyperparams as hp
 
@@ -149,21 +150,23 @@ def get_mfccs_and_spectrogram(wav, sr, trim=True, duration=1, random_crop=False)
         len = sr * duration
         wav = librosa.util.fix_length(wav, len)
 
+    # Pre-emphasis
+    y_preem = preemphasis(wav, coeff=hp.preemphasis)
+
     # Get spectrogram
-    D = librosa.stft(y=wav,
+    D = librosa.stft(y=y_preem,
                      n_fft=hp.n_fft,
                      hop_length=hp.hop_length,
                      win_length=hp.win_length)
     mag = np.abs(D)
 
-    # MFCCs
-    y_preem = preemphasis(wav, coeff=hp.preemphasis)
-    mfccs = librosa.feature.mfcc(y=y_preem,
-                                 sr=hp.sr,
-                                 n_mfcc=hp.n_mfcc,
-                                 n_fft=hp.n_fft,
-                                 hop_length=hp.hop_length,
-                                 n_mels=hp.n_mels) # (n_mfccs, t)
+    # Get mel-spectrogram
+    mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels) # (n_mels, 1+n_fft//2)
+    mel = np.dot(mel_basis, mag**1) # (n_mels, t) # mel spectrogram
+
+    # Get mfccs
+    mel = librosa.power_to_db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, mel.shape[0]), mel)
 
     return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
 
@@ -243,13 +246,12 @@ def invert_spectrogram(spectrogram):
     return librosa.istft(spectrogram, hp.hop_length, win_length=hp.win_length, window="hann")
 
 
-def preemphasis(signal, coeff=0.97):
-    """perform preemphasis on the input signal.
-    :param signal: The signal to filter.
-    :param coeff: The preemphasis coefficient. 0 is no filter, default is 0.97.
-    :returns: the filtered signal.
-    """
-    return np.append(signal[0], signal[1:] - coeff * signal[:-1])
+def preemphasis(x, coeff=0.97):
+  return signal.lfilter([1, -coeff], [1], x)
+
+
+def inv_preemphasis(x, coeff=0.97):
+  return signal.lfilter([1], [1, -coeff], x)
 
 
 def wav_random_crop(wav, sr, duration):
