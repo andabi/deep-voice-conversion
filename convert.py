@@ -54,11 +54,14 @@ def convert(logdir='logdir/default/train2', queue=False):
         pred_specs = np.power(pred_specs, hp.convert.emphasis_magnitude)
         y_specs = np.power(y_specs, hp.convert.emphasis_magnitude)
 
+        # Spectrogram to waveform
         audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
         y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
 
+        # Apply inverse pre-emphasis
         audio = inv_preemphasis(audio, coeff=hp.preemphasis)
         y_audio = inv_preemphasis(y_audio, coeff=hp.preemphasis)
+
 
         # Visualize PPGs
         heatmap = np.expand_dims(ppgs, 3)  # channel=1
@@ -71,6 +74,7 @@ def convert(logdir='logdir/default/train2', queue=False):
         # Write the result
         tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
         tf.summary.audio('B', audio, hp.sr, max_outputs=hp.convert.batch_size)
+
 
         writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
         writer.close()

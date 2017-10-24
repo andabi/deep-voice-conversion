@@ -1,38 +1,27 @@
-데이터가 오히려 많을 떄 over-average 되서 소리가 이도저도 아닌 느낌..
-
-silance training
-* train1, train2에서 trim 제거하고 random_crop 추가
-
-문제가 뭐였나?
-* random crop 제거한거?
-* 모델에 normalization 바로잡은거?
-* n_fft가 win_length랑 최대한 같은게 중요한거 같은데 조사 필요. 이게 어떻게 loss fn을 망가뜨리는지만 밝혀내면 된다. mfcc가 이상해지나?
-
-배운 것
-* spectrogram -> wav 변환시 magnitude에 어느 정도 emphasis를 주는 것은 잡음을 제거하는데 도움이 된다.
-* normalization before/after RELU 혹은 normalization 종류는 크게 영향을 미치지 않는다.
-* 각 모듈(net1, net2)에서 쓰는 sample rate는 같아야 한다.
-* CBHG는 tacotron 논문에도 언급되있듯이 overfitting 문제를 덜 겪는것 같다.
-
-가설
-* 데이터에 비해 모델 파라미터 수가 부족
-    * Random_crop을 오히려 제거 (데이터를 줄이는 효과)
-    * 더 작은 데이터셋 arctic으로 해보기
-    * 모델을 확장하거나 모델 파라미터 늘리기
-* dropout으로 좀 더 일반화
-** eval loss가 좀 더 떨어지나?
-* train1의 성능이 더 중요할 수 있음
-* Trim 부정확하게 한 부분?
-* lr를 더 작게 잡아야
-
-시도해 본 것
-* ppg 구할때 softmax에 온도를 높여 더 하드하게 => 별 차이 없거나 더 잘 안됨. 지금도 충분히 하드함
+- mel-scale로 시도
+- 데시벨 변환, magnitude normalization 시도
+- train1 Trim 부정확하게 한 부분이 문제?
 
 시도해 볼만한 것
 * softmax 빼고
 * phone 경계부분을 soft하게 (timit은 hard)
 * adversarial training
 * train2 loss를 spectrogram이 아닌 mcep 기준으로 하면 다른가?
+
+silance training
+* train1, train2에서 trim 제거하고 random_crop 추가
+
+---
+알게된 것
+* spectrogram -> wav 변환시 magnitude에 어느 정도 emphasis를 주는 것은 잡음을 제거하는데 도움이 된다.
+* normalization before/after RELU 혹은 normalization 종류는 크게 영향을 미치지 않는다.
+* 각 모듈(net1, net2)에서 쓰는 sample rate, window_len, hop_len는 같아야 한다.
+* CBHG는 tacotron 논문에도 언급되있듯이 overfitting 문제를 덜 겪는것 같다.
+* softmax temperature로 ppg dist.를 임의로 바꾸는 것은 크게 도움되지 않는다.
+ - 어차피 class의 수는 동일하고 0~1 사이의 범위라고는 하지만 실수 범위이기 때문에 담을 수 있는 정보량은 동일.
+ - cf) autoencoder vs variational autoencoder
+* train1의 classification 성능은 완벽할 필요는 없음.
+ - training set의 label이 완벽하지 않아도 (수렴하는데까지는 더 오래 걸리지만) 결국 완벽할 때의 optimal에 도달한다는 hinton의 연구 결과가 있음.
 
 아이디어
 * train2에서 loss를 conversion 전후의 l2 + conversion 전후의 ppg

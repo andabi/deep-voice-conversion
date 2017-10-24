@@ -1,29 +1,45 @@
-no_dropout
-* diff: dropout_rate=0
-
-random_cropÔ
-* diff: random_crop=True
-
-bn
-* diff: norm='bn'
-
-silence
-* diff: trim=False
-
-
 default
 * trim, no random crop, duration=1
-* sr=16000, n_fft=512, 25ms, 5ms
+* sr=16000, n_fft=1024, 50ms, 12.5ms
 * hidden_units=256, num_highwaynet_blocks=4
 * lr=0.005
 * arctic
+* train1=default
 
+vc_8gpu
+0: sense_sampled
+* dataset: sense 1000 sampled
+
+1: raquin_sampled
+* dataset: raquin 1000 sampled
+
+2: kate_sampled
+* dataset: kate 1000 sampled
+
+3: sense_sampled_2
+* dataset: sense 1000 sampled
+* duration: 2
+
+4: raquin_sampled_2
+* dataset: raquin 1000 sampled
+* duration: 2
+
+5: kate_sampled_2
+* dataset: kate 1000 sampled
+* duration: 2
+
+6: arctic_sampled
+* dataset: arctic 100 sampled
+
+7: arctic_sampled2
+* dataset: arctic 500 sampled
+
+---
 vc2
 0: softmax_2
 * temp=2.0
 
-1: arctic_large
-* hidden_units=512, num_highwaynet_blocks=8
+1: win_50
 
 2: sense_large
 * hidden_units=512, num_highwaynet_blocks=8
@@ -31,17 +47,16 @@ vc2
 3: raquin_large
 * hidden_units=512, num_highwaynet_blocks=8
 
-4: arctic_xlarge
-* hidden_units=512, num_highwaynet_blocks=16
+4: kate_sampled_large
+* dataset: kate 1000 sampled
+* hidden_units=512, num_highwaynet_blocks=8
 
-5: sense_xlarge
-* hidden_units=512, num_highwaynet_blocks=16
+5: win_50_dropout_0.5
 
 6: raquin_xlarge
 * hidden_units=512, num_highwaynet_blocks=16
 
-7: kate_xlarge
-* hidden_units=512, num_highwaynet_blocks=16
+7: win_50_dropout_0
 
 
 vc
@@ -56,6 +71,24 @@ vc
 
 3: arctic_1024_4
 * hidden_units=1024, num_highwaynet_blocks=4
+
+---
+vc2
+1: arctic_large
+* hidden_units=512, num_highwaynet_blocks=8
+
+4: arctic_xlarge
+* hidden_units=512, num_highwaynet_blocks=16
+=> exploded
+
+5: sense_xlarge
+* hidden_units=512, num_highwaynet_blocks=16
+=> exploded
+
+7: kate_xlarge
+* hidden_units=512, num_highwaynet_blocks=16
+=> exploded
+
 
 ---
 vc

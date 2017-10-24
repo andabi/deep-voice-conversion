@@ -15,17 +15,12 @@ logdir_path = './logdir'
 class Hyperparams:
     # signal processing
     sr = 16000 # Sampling rate.
-    frame_shift = 0.005  # seconds
-    frame_length = 0.025  # seconds
-    n_fft = 512
+    frame_shift = 0.0125  # seconds
+    frame_length = 0.05  # seconds
+    n_fft = 1024
 
-    # sr = 20000 # Sampling rate.
-    # frame_shift = 0.0125  # seconds
-    # frame_length = 0.05  # seconds
-    # n_fft = 1024
-
-    hop_length = int(sr*frame_shift) # samples.  This is dependent on the frame_shift.
-    win_length = int(sr*frame_length) # samples. This is dependent on the frame_length.
+    hop_length = int(sr*frame_shift)  # 200 samples.  This is dependent on the frame_shift.
+    win_length = int(sr*frame_length)  # 800 samples. This is dependent on the frame_length.
 
     preemphasis = 0.97
     n_mfcc = 40
