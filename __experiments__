@@ -13,8 +13,8 @@ vc_8gpu
 1: raquin_sampled
 * dataset: raquin 1000 sampled
 
-2: kate_sampled
-* dataset: kate 1000 sampled
+2: sense_zero_one_normalized
+* dataset: sense
 
 3: sense
 * dataset: sense
@@ -40,8 +40,14 @@ vc_8gpu
 * sr=16000, n_fft=512, 25ms, 5ms
 * hidden_units=512, num_highwaynet_blocks=8
 
+7: sense_normalized
+* dataset: sense
+
 ---
 vc_8gpu
+2: kate_sampled
+* dataset: kate 1000 sampled
+
 3: sense_sampled_2
 * dataset: sense 1000 sampled
 * duration: 2

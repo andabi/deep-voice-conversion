@@ -45,7 +45,7 @@ def load_data(mode):
         wav_files = glob.glob(hp.test1.data_path)
     elif mode == "train2":
         testset_size = hp.test2.batch_size * 4
-        wav_files = glob.glob(hp.train2.data_path)[testset_size:][:1000]
+        wav_files = glob.glob(hp.train2.data_path)[testset_size:]
     elif mode == "test2":
         testset_size = hp.test2.batch_size * 4
         wav_files = glob.glob(hp.train2.data_path)[:testset_size]

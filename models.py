@@ -25,7 +25,11 @@ class Model:
 
         # Convert to log of magnitude
         if log_mag:
-            self.y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+            y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+
+            # Normalization
+            # self.y_log_spec = (y_log_spec - hp.mean_log_spec) / hp.std_log_spec
+            self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
         else:
             self.y_log_spec = self.y_spec
 

@@ -12,6 +12,7 @@ from utils import *
 from hparams import logdir_path
 import datetime
 import tensorflow as tf
+from hparams import Hyperparams as hp
 
 
 def convert(logdir='logdir/default/train2', queue=False):
@@ -43,6 +44,12 @@ def convert(logdir='logdir/default/train2', queue=False):
         else:
             x, y = get_batch_per_wav(model.mode, model.batch_size)
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs], feed_dict={model.x_mfcc: x, model.y_spec: y})
+
+        # Denormalizatoin
+        # pred_log_specs = hp.mean_log_spec + hp.std_log_spec * pred_log_specs
+        # y_log_spec = hp.mean_log_spec + hp.std_log_spec * y_log_spec
+        pred_log_specs = hp.min_log_spec + (hp.max_log_spec - hp.min_log_spec) * pred_log_specs
+        y_log_spec = hp.min_log_spec + (hp.max_log_spec - hp.min_log_spec) * y_log_spec
 
         # Convert log of magnitude to magnitude
         if model.log_mag:

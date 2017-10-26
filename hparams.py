@@ -28,6 +28,13 @@ class Hyperparams:
     n_mels = 128
     duration = 1
 
+    mean_log_spec = -4.25
+    std_log_spec = 2.15
+
+    min_log_spec = -21.25
+    max_log_spec = 3.0
+
+
     ###########
     # default #
     ###########
@@ -84,10 +91,10 @@ class Hyperparams:
         batch_size = 32
 
     class convert:
-        # data_path = '{}/test/godfather2/*.wav'.format(data_path_base)
+        data_path = '{}/test/*.wav'.format(data_path_base)
         data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
         # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
         # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
         # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
-        batch_size = 4
+        batch_size = 60
         emphasis_magnitude = 1.3
