@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-from hyperparams import Hyperparams as hp, logdir_path
+from hparams import Hyperparams as hp, logdir_path
 from tqdm import tqdm
 
 import tensorflow as tf

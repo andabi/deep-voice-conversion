@@ -1,15 +1,16 @@
-- mel-scale로 시도
-- 데시벨 변환, magnitude normalization 시도
-- train1 Trim 부정확하게 한 부분이 문제?
-
 시도해 볼만한 것
+* magnitude normalization 시도
+* 데시벨 변환
+* mel-scale로 시도
+* train2 loss를 spectrogram이 아닌 mcep 기준으로 하면 다른가?
+* train1 Trim 부정확하게 한 부분이 문제?
+* silance training
+ - train1, train2에서 trim 제거하고 random_crop 추가
 * softmax 빼고
 * phone 경계부분을 soft하게 (timit은 hard)
 * adversarial training
-* train2 loss를 spectrogram이 아닌 mcep 기준으로 하면 다른가?
-
-silance training
-* train1, train2에서 trim 제거하고 random_crop 추가
+ - wgan
+ - average되지 않은 더 sharp한 소리를 만들어 낼 것이라 기대
 
 ---
 알게된 것
@@ -20,8 +21,9 @@ silance training
 * softmax temperature로 ppg dist.를 임의로 바꾸는 것은 크게 도움되지 않는다.
  - 어차피 class의 수는 동일하고 0~1 사이의 범위라고는 하지만 실수 범위이기 때문에 담을 수 있는 정보량은 동일.
  - cf) autoencoder vs variational autoencoder
-* train1의 classification 성능은 완벽할 필요는 없음.
- - training set의 label이 완벽하지 않아도 (수렴하는데까지는 더 오래 걸리지만) 결국 완벽할 때의 optimal에 도달한다는 hinton의 연구 결과가 있음.
+* train1의 classification 정확도는 완벽할 필요는 없음.
+ - training set의 label이 완벽하지 않아도 (수렴하는데까지는 더 오래 걸리지만) 결국 완벽할 때의 optimal에 도달한다는 hinton의 연구 결과 참고
+* phoneme classification 할땐 window_len, hop_len가 하나의 class로 매핑될 수 있게 충분히 작아야 한다. 각각이 25ms, 5ms인 이유.
 
 아이디어
 * train2에서 loss를 conversion 전후의 l2 + conversion 전후의 ppg

@@ -9,8 +9,9 @@ import argparse
 from data_load import get_batch_per_wav
 from models import Model
 from utils import *
-from hyperparams import logdir_path
+from hparams import logdir_path
 import datetime
+import tensorflow as tf
 
 
 def convert(logdir='logdir/default/train2', queue=False):

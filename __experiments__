@@ -16,6 +16,32 @@ vc_8gpu
 2: kate_sampled
 * dataset: kate 1000 sampled
 
+3: sense
+* dataset: sense
+
+4: raquin
+* dataset: raquin
+
+5: sense_512_8
+* dataset: sense
+* train1=large
+* sr=16000, n_fft=512, 25ms, 5ms
+* hidden_units=512, num_highwaynet_blocks=8
+
+6: raquin_512_8
+* dataset: raquin
+* train1=large
+* sr=16000, n_fft=512, 25ms, 5ms
+* hidden_units=512, num_highwaynet_blocks=8
+
+6: sense_sampled_512_8
+* dataset: sense 1000 sampled
+* train1=large
+* sr=16000, n_fft=512, 25ms, 5ms
+* hidden_units=512, num_highwaynet_blocks=8
+
+---
+vc_8gpu
 3: sense_sampled_2
 * dataset: sense 1000 sampled
 * duration: 2

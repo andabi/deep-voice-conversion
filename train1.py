@@ -2,7 +2,7 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-from hyperparams import Hyperparams as hp, logdir_path
+from hparams import Hyperparams as hp, logdir_path
 from tqdm import tqdm
 
 from modules import *

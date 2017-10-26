@@ -7,7 +7,7 @@ import sys
 import tensorflow as tf
 
 from data_load import get_batch_queue, load_vocab
-from hyperparams import Hyperparams as hp
+from hparams import Hyperparams as hp
 from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
 
 

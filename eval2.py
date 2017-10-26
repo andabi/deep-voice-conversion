@@ -6,7 +6,7 @@ from __future__ import print_function
 from data_load import *
 from models import Model
 import argparse
-from hyperparams import logdir_path
+from hparams import logdir_path
 
 
 def eval(logdir='logdir/default/train2', queue=True):
