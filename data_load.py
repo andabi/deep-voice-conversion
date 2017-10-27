@@ -77,35 +77,34 @@ def get_batch_queue(mode, batch_size):
 
         if mode in ('train1', 'test1'):
             # Get inputs and target
-            x, y = get_mfccs_and_phones_queue(inputs=wav_file,
+            mfcc, ppg = get_mfccs_and_phones_queue(inputs=wav_file,
                                               dtypes=[tf.float32, tf.int32],
                                               capacity=2048,
                                               num_threads=32)
 
             # create batch queues
-            x, y = tf.train.batch([x, y],
+            mfcc, ppg = tf.train.batch([mfcc, ppg],
                                   shapes=[(None, hp.n_mfcc), (None,)],
                                   num_threads=32,
                                   batch_size=batch_size,
                                   capacity=batch_size * 32,
                                   dynamic_pad=True)
-
+            return mfcc, ppg, num_batch
         else:
             # Get inputs and target
-            x, y = get_mfccs_and_spectrogram_queue(inputs=wav_file,
-                                                   dtypes=[tf.float32, tf.float32],
+            mfcc, spec, mel = get_mfccs_and_spectrogram_queue(inputs=wav_file,
+                                                   dtypes=[tf.float32, tf.float32, tf.float32],
                                                    capacity=2048,
                                                    num_threads=64)
 
             # create batch queues
-            x, y = tf.train.batch([x, y],
-                                shapes=[(None, hp.n_mfcc), (None, 1+hp.n_fft//2)],
+            mfcc, spec, mel = tf.train.batch([mfcc, spec, mel],
+                                shapes=[(None, hp.n_mfcc), (None, 1+hp.n_fft//2), (None, hp.n_mels)],
                                 num_threads=64,
                                 batch_size=batch_size,
                                 capacity=batch_size * 64,
                                 dynamic_pad=True)
-
-        return x, y, num_batch
+            return mfcc, spec, mel, num_batch
 
 
 def get_batch(mode, batch_size):
@@ -123,15 +122,15 @@ def get_batch(mode, batch_size):
         target_wavs = sample(wav_files, batch_size)
 
         if mode in ('train1', 'test1'):
-            x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.sr), target_wavs)))
+            mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.sr), target_wavs)))
+            return mfcc, ppg
         else:
             def load_and_get_mfccs_and_spectrogram(wav_file):
                 wav, sr = librosa.load(wav_file, sr=hp.sr)
                 return get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
 
-            x, y = map(_get_zero_padded, zip(*map(lambda w: load_and_get_mfccs_and_spectrogram(w), target_wavs)))
-    return x, y
-
+            mfcc, spec, mel = map(_get_zero_padded, zip(*map(lambda w: load_and_get_mfccs_and_spectrogram(w), target_wavs)))
+            return mfcc, spec, mel
 
 # TODO generalize for all mode
 def get_batch_per_wav(mode, batch_size):
@@ -147,8 +146,8 @@ def get_batch_per_wav(mode, batch_size):
         len = hp.duration * hp.sr
         batched = np.reshape(wav, (batch_size, len))
 
-        x, y = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, sr, duration=hp.duration), batched)))
-    return x, y
+        mfcc, spec, mel = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, sr, duration=hp.duration), batched)))
+    return mfcc, spec, mel
 
 
 def _get_zero_padded(list_of_arrays):
@@ -241,8 +240,8 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        This is applied in `train2` or `test2` phase.
     '''
     wav, sr = librosa.load(wav_file, sr=hp.sr)
-    mfccs, spectrogram = get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
-    return mfccs, spectrogram
+    mfccs, spec, mel = get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
+    return mfccs, spec, mel
 
 
 def get_mfccs_and_phones(wav_file, sr, trim=True, random_crop=False, crop_timesteps=hp.sr/hp.hop_length):
@@ -253,7 +252,7 @@ def get_mfccs_and_phones(wav_file, sr, trim=True, random_crop=False, crop_timest
     wav, sr = librosa.load(wav_file, sr=sr)
 
     # Get MFCCs
-    mfccs, _ = get_mfccs_and_spectrogram(wav, sr, trim=False, random_crop=False)
+    mfccs, _, _ = get_mfccs_and_spectrogram(wav, sr, trim=False, random_crop=False)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -317,10 +316,10 @@ def get_mfccs_and_spectrogram(wav, sr, trim=True, duration=1, random_crop=False)
     mel = np.dot(mel_basis, mag**1) # (n_mels, t) # mel spectrogram
 
     # Get mfccs
-    mel = librosa.power_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, mel.shape[0]), mel)
+    db = librosa.power_to_db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, db.shape[0]), mel)
 
-    return mfccs.T, mag.T # (t, n_mfccs),  (t, 1+n_fft/2)
+    return mfccs.T, mag.T, mel.T # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
 
 
 class _FuncQueueRunner(tf.train.QueueRunner):

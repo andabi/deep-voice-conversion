@@ -9,7 +9,7 @@ I implemented a deep neural networks to achieve that.
 I could convert a anonymous male's voice to a famous English actress [Kate Winslet](https://en.wikipedia.org/wiki/Kate_Winslet)'s voice.
 Don't hesitate to visit [here]() to listen those!
 
-## Model Architecture
+## Model Architecturec
 This is a many-to-one voice conversion system.
 The main significance of this work is that we could generate a target speaker's utterances without parallel datasets like <wav, text> or <wav, phone>, but only waveforms of the target speaker.
 (To get or create a set of <wav, phone> pairs from a target speaker needs a lot of effort.)
@@ -60,8 +60,8 @@ Net2 contains Net1 as a sub-network.
 
 ### Settings
 * sample rate: 16,000Hz
-* frame length: 25ms
-* frame shift: 5ms
+* window length: 25ms
+* hop length: 5ms
 
 ### Datasets
 * Train1
@@ -75,20 +75,23 @@ Net2 contains Net1 as a sub-network.
 ### Samples
 [here]()
 
-## Tips
-* phoneme classification 할땐 window_len, hop_len가 하나의 class로 매핑될 수 있게 충분히 작아야 한다. 각각이 25ms, 5ms인 이유.
-* 각 모듈(net1, net2)에서 쓰는 sample rate, window_len, hop_len는 같아야 한다.
-* train1의 classification 정확도는 완벽할 필요는 없음.
- - training set의 label이 완벽하지 않아도 (수렴하는데까지는 더 오래 걸리지만) 결국 완벽할 때의 optimal에 도달한다는 hinton의 연구 결과 참고
-* spectrogram -> wav 변환시 magnitude에 어느 정도 emphasis를 주는 것은 잡음을 제거하는데 도움이 된다.
-* softmax temperature로 ppg dist.를 임의로 바꾸는 것은 크게 도움되지 않는다.
- - 어차피 class의 수는 동일하고 0~1 사이의 범위라고는 하지만 실수 범위이기 때문에 담을 수 있는 정보량은 동일.
- - cf) autoencoder vs variational autoencoder
+## Tips (Lessons I've learned from this project)
+* Window length and hop length should be small enough to fit in only one phoneme.
+* Obviously, sample rate, window length and hop length should be same in both Net1 and Net2.
+* It seems that the accuracy of Net1(phoneme classification) does not need to be perfect.
+  * Net2 can reach to near optimal when Net1 accuracy is correct to some extent.
+* Before ISTFT(spectrogram to waveforms), emphasizing on the predicted spectrogram by applying power of 1.0~2.0 is helpful for removing noisy sound.
+* It seems that to apply temperature to softmax in Net1 is meaningless.
 
 ## Future Works
 * Adversarial training
   * Expecting to generate sharper and cleaner voice.
 
+## Ultimate Goals
+* Many-to-Many(Multi target speaker) voice conversion system
+* VC without training set of target voice, but only small set of target voice (1 min)
+  * (On going)
 
-## Acknowledgements
-This work mainly refers to a paper ["Phonetic posteriorgrams for many-to-one voice conversion without parallel data training"](https://www.researchgate.net/publication/307434911_Phonetic_posteriorgrams_for_many-to-one_voice_conversion_without_parallel_data_training), 2016 IEEE International Conference on Multimedia and Expo (ICME)
+## References
+* ["Phonetic posteriorgrams for many-to-one voice conversion without parallel data training"](https://www.researchgate.net/publication/307434911_Phonetic_posteriorgrams_for_many-to-one_voice_conversion_without_parallel_data_training), 2016 IEEE International Conference on Multimedia and Expo (ICME)
+* ["TACOTRON: TOWARDS END-TO-END SPEECH SYNTHESIS"](https://arxiv.org/abs/1703.10135), Submitted to Interspeech 2017

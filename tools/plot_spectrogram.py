@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from audio_utils import read, write
 
-filename = '/Users/avin/git/vc/datasets/kate/sense_and_sensibility/1-1-001.wav'
+filename = '/Users/avin/git/vc/datasets/timit/TIMIT/TEST/DR1/FAKS0/SA1.wav'
 sr = 22050
 n_fft = 4096
 len_hop = n_fft / 4
@@ -16,7 +16,7 @@ plot_spec = True
 
 # Waveforms
 wav = read(filename, sr, mono=True)
-wav = np.where(wav == 0, 1000, wav)
+# wav = np.where(wav == 0, 1000, wav)
 # wav = np.zeros_like(wav)
 # wav[0] = np.ones_like(wav[0])
 

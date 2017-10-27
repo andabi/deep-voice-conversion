@@ -1,17 +1,19 @@
 default
 * trim, no random crop, duration=1
-* sr=16000, n_fft=1024, 50ms, 12.5ms
+* sr=16000, n_fft=512, 25ms, 5ms
 * hidden_units=256, num_highwaynet_blocks=4
 * lr=0.005
 * arctic
 * train1=default
 
 vc_8gpu
-0: sense_sampled
-* dataset: sense 1000 sampled
+0: sense_normalized_512_8
+* dataset: sense
+* hidden_units=512, num_highwaynet_blocks=8
 
-1: raquin_sampled
-* dataset: raquin 1000 sampled
+1: sense_mel
+* dataset: sense
+* train1=mel
 
 2: sense_zero_one_normalized
 * dataset: sense
@@ -22,6 +24,18 @@ vc_8gpu
 4: raquin
 * dataset: raquin
 
+5: sense_l1
+* dataset: sense
+* train1=large
+* hidden_units=512, num_highwaynet_blocks=8
+
+6: sense_onehot
+* dataset: sense
+* train1=large
+* hidden_units=512, num_highwaynet_blocks=8
+
+---
+vc_8gpu
 5: sense_512_8
 * dataset: sense
 * train1=large
@@ -40,11 +54,17 @@ vc_8gpu
 * sr=16000, n_fft=512, 25ms, 5ms
 * hidden_units=512, num_highwaynet_blocks=8
 
-7: sense_normalized
+7: sense_zero_one_normalized_512_8
 * dataset: sense
 
 ---
 vc_8gpu
+0: sense_sampled
+* dataset: sense 1000 sampled
+
+1: raquin_sampled
+* dataset: raquin 1000 sampled
+
 2: kate_sampled
 * dataset: kate 1000 sampled
 

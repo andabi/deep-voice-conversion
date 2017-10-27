@@ -36,8 +36,8 @@ def eval(logdir='logdir/default/train2', queue=True):
         if queue:
             summ, loss = sess.run([summ_op, loss_op])
         else:
-            x, y = get_batch(model.mode, model.batch_size)
-            summ, loss = sess.run([summ_op, loss_op], feed_dict={model.x_mfcc: x, model.y_spec: y})
+            mfcc, spec, mel = get_batch(model.mode, model.batch_size)
+            summ, loss = sess.run([summ_op, loss_op], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
         writer.add_summary(summ)
         writer.close()

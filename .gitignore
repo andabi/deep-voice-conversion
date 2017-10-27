@@ -3,3 +3,4 @@ logdir*
 *.py[cod]
 datasets
 .DS_Store
+outputs

@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from data_load import get_batch_queue, load_vocab
 from hparams import Hyperparams as hp
-from modules import prenet, conv1d, conv1d_banks, normalize, gru, highwaynet
+from modules import prenet, cbhg
 
 
 class Model:
@@ -21,24 +21,26 @@ class Model:
         self.t = t  # temperature
 
         # Input
-        self.x_mfcc, self.y_ppgs, self.y_spec, self.num_batch = self.get_input(mode, batch_size, queue)
+        self.x_mfcc, self.y_ppgs, self.y_spec, self.y_mel, self.num_batch = self.get_input(mode, batch_size, queue)
 
         # Convert to log of magnitude
         if log_mag:
-            y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+            self.y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
+            self.y_log_mel = tf.log(self.y_mel + sys.float_info.epsilon)
 
             # Normalization
             # self.y_log_spec = (y_log_spec - hp.mean_log_spec) / hp.std_log_spec
-            self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
+            # self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
         else:
             self.y_log_spec = self.y_spec
+            self.y_log_mel = self.y_mel
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
-        self.ppgs, self.preds_ppg, self.logits_ppg, self.preds_spec = self.net_template()
+        self.ppgs, self.pred_ppg, self.logits_ppg, self.pred_spec, self.pred_mel = self.net_template()
 
     def __call__(self):
-        return self.preds_spec
+        return self.pred_spec
 
     def get_input(self, mode, batch_size, queue):
         '''
@@ -55,14 +57,15 @@ class Model:
         x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mfcc))
         y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
         y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp.n_fft // 2))
+        y_mel = tf.placeholder(tf.float32, shape=(batch_size, None, hp.n_mels))
         num_batch = 1
 
         if queue:
             if mode in ("train1", "test1"):  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
                 x_mfcc, y_ppgs, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
             elif mode in ("train2", "test2", "convert"): # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
-                x_mfcc, y_spec, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-        return x_mfcc, y_ppgs, y_spec, num_batch
+                x_mfcc, y_spec, y_mel, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
+        return x_mfcc, y_ppgs, y_spec, y_mel, num_batch
 
     def get_is_training(self, mode):
         if mode in ('train1', 'train2'):
@@ -83,34 +86,10 @@ class Model:
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG
-            ## Conv1D banks
-            enc = conv1d_banks(prenet_out,
-                               K=hp.num_banks,
-                               num_units=hp.hidden_units // 2,
-                               norm_type=hp.norm_type,
-                               is_training=self.is_training)  # (N, T, K * E / 2)
-
-            ## Max pooling
-            enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
-
-            ## Conv1D projections
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1")  # (N, T, E/2)
-            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2")  # (N, T, E/2)
-            # enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
-            enc += prenet_out  # (N, T, E/2) # residual connections
-
-            ## Highway Nets
-            for i in range(hp.num_highwaynet_blocks):
-                enc = highwaynet(enc,
-                                 num_units=hp.hidden_units // 2,
-                                 scope='highwaynet_{}'.format(i))  # (N, T, E/2)
-
-            ## Bidirectional GRU
-            enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
+            out = cbhg(prenet_out, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training)
 
             # Final linear projection
-            logits = tf.layers.dense(enc, len(phn2idx))  # (N, T, V)
+            logits = tf.layers.dense(out, len(phn2idx))  # (N, T, V)
             ppgs = tf.nn.softmax(logits / self.t)  # (N, T, V)
             preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
 
@@ -125,7 +104,7 @@ class Model:
 
     def acc_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.preds_ppg, self.y_ppgs)) * istarget)
+        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.pred_ppg, self.y_ppgs)) * istarget)
         num_targets = tf.reduce_sum(istarget)
         acc = num_hits / num_targets
         return acc
@@ -135,50 +114,26 @@ class Model:
         ppgs, preds_ppg, logits_ppg = self._net1()
 
         with tf.variable_scope('net2'):
-            # Encoder
-            # Encoder pre-net
+            # Pre-net
             prenet_out = prenet(ppgs,
                                 num_units=[hp.hidden_units, hp.hidden_units // 2],
                                 dropout_rate=hp.dropout_rate,
                                 is_training=self.is_training)  # (N, T, E/2)
 
-            # Encoder CBHG
-            ## Conv1D bank
-            enc = conv1d_banks(prenet_out,
-                               K=hp.num_banks,
-                               num_units=hp.hidden_units // 2,
-                               norm_type=hp.norm_type,
-                               is_training=self.is_training)  # (N, T, K * E / 2)
+            # CBHG1: mel-scale
+            pred_mel = cbhg(prenet_out, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg1")
+            pred_mel = tf.layers.dense(pred_mel, self.y_log_mel.shape[-1])  # log magnitude: (N, T, n_mels)
 
-            ### Max pooling
-            enc = tf.layers.max_pooling1d(enc, 2, 1, padding="same")  # (N, T, K * E / 2)
+            # CBHG2: linear-scale
+            pred_spec = cbhg(pred_mel, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg2")
+            pred_spec = tf.layers.dense(pred_spec, self.y_log_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
-            ### Conv1D projections
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_1")  # (N, T, E/2)
-            enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
-            enc = conv1d(enc, hp.hidden_units // 2, 3, scope="conv1d_2")  # (N, T, E/2)
-            # enc = normalize(enc, type=hp.norm_type, is_training=self.is_training, activation_fn=tf.nn.relu)
-            enc += prenet_out  # (N, T, E/2) # residual connections
+        return ppgs, preds_ppg, logits_ppg, pred_spec, pred_mel
 
-            ### Highway Nets
-            for i in range(hp.num_highwaynet_blocks):
-                enc = highwaynet(enc, num_units=hp.hidden_units // 2,
-                                 scope='highwaynet_{}'.format(i))  # (N, T, E/2)
-
-            ### Bidirectional GRU
-            enc = gru(enc, hp.hidden_units // 2, True)  # (N, T, E)
-
-            # Final projection
-            preds_spec = tf.layers.dense(enc, self.y_log_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
-
-        return ppgs, preds_ppg, logits_ppg, preds_spec
-
-    def loss_net2(self):  # Loss
-        loss = tf.squared_difference(self.preds_spec, self.y_log_spec)
-
-        # Mean loss
-        loss = tf.reduce_mean(loss)
-
+    def loss_net2(self):
+        loss_spec = tf.reduce_mean(tf.abs(self.pred_spec - self.y_log_spec))
+        loss_mel = tf.reduce_mean(tf.abs(self.pred_mel - self.y_log_mel))
+        loss = loss_spec + loss_mel
         return loss
 
     @staticmethod

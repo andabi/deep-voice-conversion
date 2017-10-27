@@ -51,8 +51,8 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
                 if queue:
                     sess.run(train_op)
                 else:
-                    x, y = get_batch(model.mode, model.batch_size)
-                    sess.run(train_op, feed_dict={model.x_mfcc: x, model.y_spec: y})
+                    mfcc, spec, mel = get_batch(model.mode, model.batch_size)
+                    sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])

@@ -28,20 +28,20 @@ class Hyperparams:
     n_mels = 128
     duration = 1
 
-    mean_log_spec = -4.25
-    std_log_spec = 2.15
+    # mean_log_spec = -4.25
+    # std_log_spec = 2.15
 
-    min_log_spec = -21.25
-    max_log_spec = 3.0
+    # min_log_spec = -21.25
+    # max_log_spec = 3.0
 
 
     ###########
     # default #
     ###########
     # model
-    hidden_units = 512 # alias = E
+    hidden_units = 256 # alias = E
     num_banks = 16
-    num_highwaynet_blocks = 8
+    num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t = 1.0  # temperature
     dropout_rate = 0.2
@@ -91,10 +91,10 @@ class Hyperparams:
         batch_size = 32
 
     class convert:
-        data_path = '{}/test/*.wav'.format(data_path_base)
         data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
+        # data_path = '{}/test/*.wav'.format(data_path_base)
         # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
         # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
         # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
-        batch_size = 60
+        batch_size = 4
         emphasis_magnitude = 1.3
