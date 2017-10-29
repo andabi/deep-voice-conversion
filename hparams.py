@@ -26,11 +26,10 @@ class Hyperparams:
     n_mfcc = 40
     n_iter = 60 # Number of inversion iterations
     n_mels = 128
-    duration = 1
+    duration = 4
 
     # mean_log_spec = -4.25
     # std_log_spec = 2.15
-
     # min_log_spec = -21.25
     # max_log_spec = 3.0
 
@@ -92,6 +91,7 @@ class Hyperparams:
 
     class convert:
         data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
+        # data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
         # data_path = '{}/test/*.wav'.format(data_path_base)
         # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
         # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)

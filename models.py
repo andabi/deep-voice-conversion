@@ -26,18 +26,18 @@ class Model:
         # Convert to log of magnitude
         if log_mag:
             self.y_log_spec = tf.log(self.y_spec + sys.float_info.epsilon)
-            self.y_log_mel = tf.log(self.y_mel + sys.float_info.epsilon)
+            # self.y_log_mel = tf.log(self.y_mel + sys.float_info.epsilon)
 
             # Normalization
             # self.y_log_spec = (y_log_spec - hp.mean_log_spec) / hp.std_log_spec
             # self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
         else:
             self.y_log_spec = self.y_spec
-            self.y_log_mel = self.y_mel
+            # self.y_log_mel = self.y_mel
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
-        self.ppgs, self.pred_ppg, self.logits_ppg, self.pred_spec, self.pred_mel = self.net_template()
+        self.ppgs, self.pred_ppg, self.logits_ppg, self.pred_spec = self.net_template()
 
     def __call__(self):
         return self.pred_spec
@@ -121,20 +121,20 @@ class Model:
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG1: mel-scale
-            pred_mel = cbhg(prenet_out, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg1")
-            pred_mel = tf.layers.dense(pred_mel, self.y_log_mel.shape[-1])  # log magnitude: (N, T, n_mels)
+            # pred_mel = cbhg(prenet_out, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg1")
+            # pred_mel = tf.layers.dense(pred_mel, self.y_log_mel.shape[-1])  # log magnitude: (N, T, n_mels)
 
             # CBHG2: linear-scale
-            pred_spec = cbhg(pred_mel, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg2")
+            pred_spec = cbhg(prenet_out, hp.num_banks, hp.hidden_units // 2, hp.num_highwaynet_blocks, hp.norm_type, self.is_training, scope="cbhg2")
             pred_spec = tf.layers.dense(pred_spec, self.y_log_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
-        return ppgs, preds_ppg, logits_ppg, pred_spec, pred_mel
+        return ppgs, preds_ppg, logits_ppg, pred_spec
 
     def loss_net2(self):
         loss_spec = tf.reduce_mean(tf.abs(self.pred_spec - self.y_log_spec))
-        loss_mel = tf.reduce_mean(tf.abs(self.pred_mel - self.y_log_mel))
-        loss = loss_spec + loss_mel
-        return loss
+        # loss_mel = tf.reduce_mean(tf.abs(self.pred_mel - self.y_log_mel))
+        # loss = loss_spec + loss_mel
+        return loss_spec
 
     @staticmethod
     def load(sess, mode, logdir, logdir2=None):

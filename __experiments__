@@ -29,7 +29,11 @@ vc_8gpu
 * train1=large
 * hidden_units=512, num_highwaynet_blocks=8
 
-6: sense_onehot
+6: sense_mel_l1
+* dataset: sense
+* train1=mel
+
+7: sense_onehot
 * dataset: sense
 * train1=large
 * hidden_units=512, num_highwaynet_blocks=8
