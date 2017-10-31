@@ -26,7 +26,7 @@ class Hyperparams:
     n_mfcc = 40
     n_iter = 60 # Number of inversion iterations
     n_mels = 128
-    duration = 4
+    duration = 2
 
     # mean_log_spec = -4.25
     # std_log_spec = 2.15
@@ -96,5 +96,5 @@ class Hyperparams:
         # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
         # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
         # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
-        batch_size = 4
-        emphasis_magnitude = 1.3
+        batch_size = 2
+        emphasis_magnitude = 1.2

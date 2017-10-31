@@ -40,10 +40,10 @@ def convert(logdir='logdir/default/train2', queue=False):
         gs = Model.get_global_step(logdir)
 
         if queue:
-            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs])
+            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
         else:
             mfcc, spec, mel = get_batch_per_wav(model.mode, model.batch_size)
-            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_log_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
         # Denormalizatoin
         # pred_log_specs = hp.mean_log_spec + hp.std_log_spec * pred_log_specs

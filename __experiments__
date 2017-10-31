@@ -6,17 +6,17 @@ default
 * arctic
 * train1=default
 
-vc_8gpu
-0: sense_normalized_512_8
-* dataset: sense
-* hidden_units=512, num_highwaynet_blocks=8
 
+
+---
 1: sense_mel
 * dataset: sense
 * train1=mel
 
-2: sense_zero_one_normalized
+2: sense_mel_silence_2
 * dataset: sense
+* train1=mel_silence_2
+* duration=2
 
 3: sense
 * dataset: sense
@@ -33,18 +33,40 @@ vc_8gpu
 * dataset: sense
 * train1=mel
 
+7: sense_silence_2
+* dataset: sense
+* train1=silence_2
+* duration=2
+
+0: sense_4
+* dataset: sense
+* train=large
+* duration=4
+
+2: kate_4
+* dataset: kate
+* train=large
+* duration=4
+
 7: sense_onehot
 * dataset: sense
 * train1=large
 * hidden_units=512, num_highwaynet_blocks=8
 
----
-vc_8gpu
+
+0: sense_normalized_512_8
+* dataset: sense
+* hidden_units=512, num_highwaynet_blocks=8
+
+
 5: sense_512_8
 * dataset: sense
 * train1=large
 * sr=16000, n_fft=512, 25ms, 5ms
 * hidden_units=512, num_highwaynet_blocks=8
+
+2: sense_zero_one_normalized
+* dataset: sense
 
 6: raquin_512_8
 * dataset: raquin

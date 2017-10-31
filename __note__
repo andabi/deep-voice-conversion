@@ -1,11 +1,30 @@
-시도해 볼만한 것
-* magnitude normalization 시도
-* 데시벨 변환
-* mel-scale로 시도
+train1에서 amp를 normalize해보기 or data augmentation
+cross lingual
+
+db: timit
+(23.130325, -76.214066)
+(-45.330353, 16.498047)
+amp: timit
+max: 14.3389158249, min: 1.43158906951e-09, mean: 0.0404679104686, std: 0.170613601804
+
+db: sense_split
+(26.028248, -65.470718)
+(-35.563786, 16.501431)
+amp: sense_split
+max: 20.0176143646, min: 5.88393000989e-10, mean: 0.124345831573, std: 0.520740807056
+
+db: arctic-bld
+(31.721296, -58.018986)
+(-29.028818, 18.505714)
+amp: arctic-bld
+max: 38.5535888672, min: 2.96629432128e-09, mean: 0.322671025991, std: 1.05934309959
+
+
+kate 데이터의 data imbalance 문제 의심
+* 다양한 phone 시퀀스를 갖고 있지 못한 문제 (arctic과의 차이일거라 의심
+
+추후 시도해 볼만한 것
 * train2 loss를 spectrogram이 아닌 mcep 기준으로 하면 다른가?
-* train1 Trim 부정확하게 한 부분이 문제?
-* silance training
- - train1, train2에서 trim 제거하고 random_crop 추가
 * softmax 빼고
 * phone 경계부분을 soft하게 (timit은 hard)
 * adversarial training
@@ -24,6 +43,7 @@
 * train1의 classification 정확도는 완벽할 필요는 없음.
  - training set의 label이 완벽하지 않아도 (수렴하는데까지는 더 오래 걸리지만) 결국 완벽할 때의 optimal에 도달한다는 hinton의 연구 결과 참고
 * phoneme classification 할땐 window_len, hop_len가 하나의 class로 매핑될 수 있게 충분히 작아야 한다. 각각이 25ms, 5ms인 이유.
+* data normalization(spectrogram magnitude), 데시벨 변환, 혹은 mel scale로의 변환도 크게 효과는 없음
 
 아이디어
 * train2에서 loss를 conversion 전후의 l2 + conversion 전후의 ppg

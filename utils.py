@@ -31,3 +31,16 @@ def inv_preemphasis(x, coeff=0.97):
   return signal.lfilter([1], [1, -coeff], x)
 
 
+def wav_random_crop(wav, sr, duration):
+    assert (wav.ndim <= 2)
+
+    target_len = sr * duration
+    wav_len = wav.shape[-1]
+    start = np.random.choice(range(np.maximum(1, wav_len - target_len)), 1)[0]
+    end = start + target_len
+    if wav.ndim == 1:
+        wav = wav[start:end]
+    else:
+        wav = wav[:, start:end]
+    return wav
+

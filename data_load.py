@@ -15,17 +15,13 @@ from hparams import Hyperparams as hp
 
 
 def load_vocab():
-    '''
-    len(phns) is aliased as V.
-    :return:
-    '''
-    phns = ['PAD', 'UNK', 'aa', 'ae', 'ah', 'ao', 'aw', 'ax', 'ax-h', 'axr', 'ay', 'b', 'bcl',
-     'ch', 'd', 'dcl', 'dh', 'dx', 'eh', 'el', 'em', 'en', 'eng', 'epi',
-     'er', 'ey', 'f', 'g', 'gcl', 'h#', 'hh', 'hv', 'ih', 'ix', 'iy', 'jh',
-     'k', 'kcl', 'l', 'm', 'n', 'ng', 'nx', 'ow', 'oy', 'p', 'pau', 'pcl',
-     'q', 'r', 's', 'sh', 't', 'tcl', 'th', 'uh', 'uw', 'ux', 'v', 'w', 'y', 'z', 'zh']
-    phn2idx = {phn:idx for idx, phn in enumerate(phns)}
-    idx2phn = {idx:phn for idx, phn in enumerate(phns)}
+    phns = ['h#', 'aa', 'ae', 'ah', 'ao', 'aw', 'ax', 'ax-h', 'axr', 'ay', 'b', 'bcl',
+            'ch', 'd', 'dcl', 'dh', 'dx', 'eh', 'el', 'em', 'en', 'eng', 'epi',
+            'er', 'ey', 'f', 'g', 'gcl', 'hh', 'hv', 'ih', 'ix', 'iy', 'jh',
+            'k', 'kcl', 'l', 'm', 'n', 'ng', 'nx', 'ow', 'oy', 'p', 'pau', 'pcl',
+            'q', 'r', 's', 'sh', 't', 'tcl', 'th', 'uh', 'uw', 'ux', 'v', 'w', 'y', 'z', 'zh']
+    phn2idx = {phn: idx for idx, phn in enumerate(phns)}
+    idx2phn = {idx: phn for idx, phn in enumerate(phns)}
 
     return phn2idx, idx2phn
 
@@ -78,32 +74,32 @@ def get_batch_queue(mode, batch_size):
         if mode in ('train1', 'test1'):
             # Get inputs and target
             mfcc, ppg = get_mfccs_and_phones_queue(inputs=wav_file,
-                                              dtypes=[tf.float32, tf.int32],
-                                              capacity=2048,
-                                              num_threads=32)
+                                                   dtypes=[tf.float32, tf.int32],
+                                                   capacity=2048,
+                                                   num_threads=32)
 
             # create batch queues
             mfcc, ppg = tf.train.batch([mfcc, ppg],
-                                  shapes=[(None, hp.n_mfcc), (None,)],
-                                  num_threads=32,
-                                  batch_size=batch_size,
-                                  capacity=batch_size * 32,
-                                  dynamic_pad=True)
+                                       shapes=[(None, hp.n_mfcc), (None,)],
+                                       num_threads=32,
+                                       batch_size=batch_size,
+                                       capacity=batch_size * 32,
+                                       dynamic_pad=True)
             return mfcc, ppg, num_batch
         else:
             # Get inputs and target
             mfcc, spec, mel = get_mfccs_and_spectrogram_queue(inputs=wav_file,
-                                                   dtypes=[tf.float32, tf.float32, tf.float32],
-                                                   capacity=2048,
-                                                   num_threads=64)
+                                                              dtypes=[tf.float32, tf.float32, tf.float32],
+                                                              capacity=2048,
+                                                              num_threads=64)
 
             # create batch queues
             mfcc, spec, mel = tf.train.batch([mfcc, spec, mel],
-                                shapes=[(None, hp.n_mfcc), (None, 1+hp.n_fft//2), (None, hp.n_mels)],
-                                num_threads=64,
-                                batch_size=batch_size,
-                                capacity=batch_size * 64,
-                                dynamic_pad=True)
+                                             shapes=[(None, hp.n_mfcc), (None, 1 + hp.n_fft // 2), (None, hp.n_mels)],
+                                             num_threads=64,
+                                             batch_size=batch_size,
+                                             capacity=batch_size * 64,
+                                             dynamic_pad=True)
             return mfcc, spec, mel, num_batch
 
 
@@ -125,12 +121,10 @@ def get_batch(mode, batch_size):
             mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.sr), target_wavs)))
             return mfcc, ppg
         else:
-            def load_and_get_mfccs_and_spectrogram(wav_file):
-                wav, sr = librosa.load(wav_file, sr=hp.sr)
-                return get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
-
-            mfcc, spec, mel = map(_get_zero_padded, zip(*map(lambda w: load_and_get_mfccs_and_spectrogram(w), target_wavs)))
+            mfcc, spec, mel = map(_get_zero_padded, zip(*map(
+                lambda wav_file: get_mfccs_and_spectrogram(wav_file, duration=hp.duration), target_wavs)))
             return mfcc, spec, mel
+
 
 # TODO generalize for all mode
 def get_batch_per_wav(mode, batch_size):
@@ -146,28 +140,9 @@ def get_batch_per_wav(mode, batch_size):
         len = hp.duration * hp.sr
         batched = np.reshape(wav, (batch_size, len))
 
-        mfcc, spec, mel = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_spectrogram(w, sr, duration=hp.duration), batched)))
+        mfcc, spec, mel = map(_get_zero_padded,
+                              zip(*map(lambda w: get_mfccs_and_spectrogram(w, duration=hp.duration), batched)))
     return mfcc, spec, mel
-
-
-def _get_zero_padded(list_of_arrays):
-    '''
-    :param list_of_arrays
-    :return: zero padded array
-    '''
-    batch = []
-    max_len = 0
-    for d in list_of_arrays:
-        max_len = max(len(d), max_len)
-    for d in list_of_arrays:
-        num_pad = max_len - len(d)
-        pad_width = [(0, num_pad)]
-        for _ in range(d.ndim - 1):
-            pad_width.append((0, 0))
-        pad_width = tuple(pad_width)
-        padded = np.pad(d, pad_width=pad_width, mode="constant", constant_values=0)
-        batch.append(padded)
-    return np.array(batch)
 
 
 # Adapted from the `sugartensor` code.
@@ -239,20 +214,18 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    wav, sr = librosa.load(wav_file, sr=hp.sr)
-    mfccs, spec, mel = get_mfccs_and_spectrogram(wav, sr, duration=hp.duration)
+    mfccs, spec, mel = get_mfccs_and_spectrogram(wav_file, duration=hp.duration)
     return mfccs, spec, mel
 
 
-def get_mfccs_and_phones(wav_file, sr, trim=True, random_crop=False, crop_timesteps=hp.sr/hp.hop_length):
+def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True, length=int(hp.duration/hp.frame_shift+1)):
     '''This is applied in `train1` or `test1` phase.
     '''
 
     # Load
     wav, sr = librosa.load(wav_file, sr=sr)
 
-    # Get MFCCs
-    mfccs, _, _ = get_mfccs_and_spectrogram(wav, sr, trim=False, random_crop=False)
+    mfccs, _, _ = _get_mfcc_spec_and_mel_spec(wav, hp.preemphasis, hp.n_fft, hp.win_length, hp.hop_length)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -277,49 +250,68 @@ def get_mfccs_and_phones(wav_file, sr, trim=True, random_crop=False, crop_timest
 
     # Random crop
     if random_crop:
-        start = np.random.choice(range(np.maximum(1, len(mfccs) - crop_timesteps)), 1)[0]
-        end = start + crop_timesteps
+        start = np.random.choice(range(np.maximum(1, len(mfccs) - length)), 1)[0]
+        end = start + length
         mfccs = mfccs[start:end]
         phns = phns[start:end]
         assert (len(mfccs) == len(phns))
 
+    # Padding or crop
+    mfccs = librosa.util.fix_length(mfccs, length, axis=0)
+    phns = librosa.util.fix_length(phns, length, axis=0)
+
     return mfccs, phns
 
 
-def get_mfccs_and_spectrogram(wav, sr, trim=True, duration=1, random_crop=False):
-    '''This is applied in `train2` or `test2` phase.
+def get_mfccs_and_spectrogram(wav_file, trim=True, duration=None, random_crop=False):
+    '''This is applied in `train2`, `test2` or `convert` phase.
     '''
+
+    # Load
+    wav, _ = librosa.load(wav_file, sr=hp.sr)
 
     # Trim
     if trim:
         wav, _ = librosa.effects.trim(wav)
 
-    # Fix duration
     if random_crop:
         wav = wav_random_crop(wav, hp.sr, duration)
-    else:
-        len = sr * duration
-        wav = librosa.util.fix_length(wav, len)
 
+    # Padding or crop
+    if duration:
+        length = hp.sr * duration
+        wav = librosa.util.fix_length(wav, length)
+
+    mfcc, spec, mel_spec = _get_mfcc_spec_and_mel_spec(wav, hp.preemphasis, hp.n_fft, hp.win_length, hp.hop_length)
+
+    # Log
+    log_spec = np.log(spec)
+    log_mel_spec = np.log(mel_spec)
+
+    # Normalization
+    # self.y_log_spec = (y_log_spec - hp.mean_log_spec) / hp.std_log_spec
+    # self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
+
+    return mfcc, log_spec, log_mel_spec
+
+
+def _get_mfcc_spec_and_mel_spec(wav, preemphasis_coeff, n_fft, win_length, hop_length):
     # Pre-emphasis
-    y_preem = preemphasis(wav, coeff=hp.preemphasis)
+    y_preem = preemphasis(wav, coeff=preemphasis_coeff)
 
     # Get spectrogram
-    D = librosa.stft(y=y_preem,
-                     n_fft=hp.n_fft,
-                     hop_length=hp.hop_length,
-                     win_length=hp.win_length)
+    D = librosa.stft(y=y_preem, n_fft=n_fft, hop_length=hop_length, win_length=win_length)
     mag = np.abs(D)
 
     # Get mel-spectrogram
-    mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels) # (n_mels, 1+n_fft//2)
-    mel = np.dot(mel_basis, mag**1) # (n_mels, t) # mel spectrogram
+    mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels)  # (n_mels, 1+n_fft//2)
+    mel = np.dot(mel_basis, mag ** 1)  # (n_mels, t) # mel spectrogram
 
     # Get mfccs
     db = librosa.power_to_db(mel)
     mfccs = np.dot(librosa.filters.dct(hp.n_mfcc, db.shape[0]), mel)
 
-    return mfccs.T, mag.T, mel.T # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
+    return mfccs.T, mag.T, mel.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
 
 
 class _FuncQueueRunner(tf.train.QueueRunner):
@@ -372,15 +364,21 @@ class _FuncQueueRunner(tf.train.QueueRunner):
                     self._runs_per_session[sess] -= 1
 
 
-def wav_random_crop(wav, sr, duration):
-    assert(wav.ndim <= 2)
-
-    target_len = sr * duration
-    wav_len = wav.shape[-1]
-    start = np.random.choice(range(np.maximum(1, wav_len - target_len)), 1)[0]
-    end = start + target_len
-    if wav.ndim == 1:
-        wav = wav[start:end]
-    else:
-        wav = wav[:, start:end]
-    return wav
+def _get_zero_padded(list_of_arrays):
+    '''
+    :param list_of_arrays
+    :return: zero padded array
+    '''
+    batch = []
+    max_len = 0
+    for d in list_of_arrays:
+        max_len = max(len(d), max_len)
+    for d in list_of_arrays:
+        num_pad = max_len - len(d)
+        pad_width = [(0, num_pad)]
+        for _ in range(d.ndim - 1):
+            pad_width.append((0, 0))
+        pad_width = tuple(pad_width)
+        padded = np.pad(d, pad_width=pad_width, mode="constant", constant_values=0)
+        batch.append(padded)
+    return np.array(batch)

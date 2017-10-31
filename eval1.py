@@ -9,7 +9,7 @@ import argparse
 from hparams import logdir_path
 
 
-def eval(logdir='logdir/default/train1', queue=True):
+def eval(logdir='logdir/default/train1', queue=False):
     # Load graph
     model = Model(mode="test1", batch_size=hp.test1.batch_size, queue=queue)
 
