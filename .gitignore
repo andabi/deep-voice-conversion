@@ -4,3 +4,4 @@ logdir*
 datasets
 .DS_Store
 outputs
+__*

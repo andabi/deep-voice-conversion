@@ -298,7 +298,7 @@ def highwaynet(inputs, num_units=None, scope="highwaynet", reuse=None):
     return outputs
 
 
-def cbhg(input, num_banks, hidden_units, num_highwaynet_blocks, norm_type='bn', is_training=True, scope="cbhg"):
+def cbhg(input, num_banks, hidden_units, num_highway_blocks, norm_type='bn', is_training=True, scope="cbhg"):
     with tf.variable_scope(scope):
         out = conv1d_banks(input,
                            K=num_banks,
@@ -313,7 +313,7 @@ def cbhg(input, num_banks, hidden_units, num_highwaynet_blocks, norm_type='bn', 
         out = conv1d(out, hidden_units, 3, scope="conv1d_2")  # (N, T, E/2)
         out += input  # (N, T, E/2) # residual connections
 
-        for i in range(num_highwaynet_blocks):
+        for i in range(num_highway_blocks):
             out = highwaynet(out, num_units=hidden_units,
                              scope='highwaynet_{}'.format(i))  # (N, T, E/2)
 

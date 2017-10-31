@@ -3,15 +3,17 @@
 
 from __future__ import print_function
 
-from data_load import *
+import tensorflow as tf
+from data_load import get_batch
 from models import Model
 import argparse
 from hparams import logdir_path
+import hparams as hp
 
 
 def eval(logdir='logdir/default/train2', queue=True):
     # Load graph
-    model = Model(mode="test2", batch_size=hp.test2.batch_size, queue=queue)
+    model = Model(mode="test2", batch_size=hp.Test2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()

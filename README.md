@@ -1,5 +1,5 @@
-# Voice Conversion
-> With special thanks to a amazing AI researcher [Kyubyong Park](https://github.com/Kyubyong). (Co-worker)
+# Voice Conversion with Non-Parallel Data
+> Special thanks to [Kyubyong Park](https://github.com/Kyubyong). (Co-worker)
 ## Intro
 
 What if you could imitate a famous celebrity's voice or sing like a famous singer?
@@ -7,9 +7,9 @@ This project started with a goal to convert anyone's voice to a specific target 
 So called, it's voice style transfer. (or Voice-to-Voice)
 I implemented a deep neural networks to achieve that.
 I could convert a anonymous male's voice to a famous English actress [Kate Winslet](https://en.wikipedia.org/wiki/Kate_Winslet)'s voice.
-Don't hesitate to visit [here]() to listen those!
+Don't hesitate to visit [here](https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks) to listen those!
 
-## Model Architecturec
+## Model Architecture
 This is a many-to-one voice conversion system.
 The main significance of this work is that we could generate a target speaker's utterances without parallel datasets like <wav, text> or <wav, phone>, but only waveforms of the target speaker.
 (To get or create a set of <wav, phone> pairs from a target speaker needs a lot of effort.)
@@ -73,7 +73,7 @@ Net2 contains Net1 as a sub-network.
     * Splitted by sentences.
 
 ### Samples
-[here]()
+[here](https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks)
 
 ## Tips (Lessons I've learned from this project)
 * Window length and hop length should be small enough to fit in only one phoneme.
@@ -86,6 +86,7 @@ Net2 contains Net1 as a sub-network.
 ## Future Works
 * Adversarial training
   * Expecting to generate sharper and cleaner voice.
+* Cross lingual
 
 ## Ultimate Goals
 * Many-to-Many(Multi target speaker) voice conversion system

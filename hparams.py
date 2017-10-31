@@ -12,7 +12,7 @@ data_path_base = './datasets'
 logdir_path = './logdir'
 
 
-class Hyperparams:
+class Default:
     # signal processing
     sr = 16000 # Sampling rate.
     frame_shift = 0.005  # seconds
@@ -33,68 +33,80 @@ class Hyperparams:
     # min_log_spec = -21.25
     # max_log_spec = 3.0
 
-
-    ###########
-    # default #
-    ###########
     # model
-    hidden_units = 256 # alias = E
+    hidden_units = 256  # alias = E
     num_banks = 16
     num_highwaynet_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t = 1.0  # temperature
     dropout_rate = 0.2
 
+    # train
     batch_size = 32
 
-    class train1:
-        data_path = '{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(data_path_base)
 
-        # model
-        # hidden_units = 256  # alias = E
-        # num_banks = 16
-        # num_highwaynet_blocks = 4
-        # norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
-        # t = 1.0  # temperature
-        # dropout_rate = 0.2
+class Train1:
+    # path
+    data_path = '{}/timit/TIMIT/TRAIN/*/*/*.wav'.format(data_path_base)
 
-        batch_size = 32
-        lr = 0.0003
-        num_epochs = 1000
-        save_per_epoch = 2
+    # model
+    hidden_units = 256  # alias = E
+    num_banks = 16
+    num_highwaynet_blocks = 4
+    norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
+    t = 1.0  # temperature
+    dropout_rate = 0.2
 
-    class test1:
-        data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
-        batch_size = 32
+    # train
+    batch_size = 32
+    lr = 0.0003
+    num_epochs = 1000
+    save_per_epoch = 2
 
-    class train2:
-        # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
-        data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-        # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
-        # data_path = '{}/kate/*_split/*.wav'.format(data_path_base)
 
-        # model
-        # hidden_units = 512  # alias = E
-        # num_banks = 16
-        # num_highwaynet_blocks = 8
-        # norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
-        # t = 1.0  # temperature
-        # dropout_rate = 0.2
+class Train2:
+    # path
+    data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+    # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
+    # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
+    # data_path = '{}/kate/*_split/*.wav'.format(data_path_base)
 
-        batch_size = 32
-        lr = 0.0005
-        num_epochs = 10000
-        save_per_epoch = 50
+    # model
+    hidden_units = 512  # alias = E
+    num_banks = 16
+    num_highway_blocks = 8
+    norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
+    t = 1.0  # temperature
+    dropout_rate = 0.2
 
-    class test2:
-        batch_size = 32
+    # train
+    batch_size = 32
+    lr = 0.0005
+    num_epochs = 10000
+    save_per_epoch = 50
 
-    class convert:
-        data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
-        # data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
-        # data_path = '{}/test/*.wav'.format(data_path_base)
-        # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-        # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
-        # wav_files = glob.glob('{}/iKala/Wavfile/*.wav'.format(hp.data_path))
-        batch_size = 2
-        emphasis_magnitude = 1.2
+
+class Test1:
+    # path
+    data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
+
+    # test
+    batch_size = 32
+
+
+class Test2:
+    # test
+    batch_size = 32
+
+
+class Convert:
+    # path
+    data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
+    # data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
+    # data_path = '{}/test/*.wav'.format(data_path_base)
+    # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+    # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
+
+    # convert
+    batch_size = 2
+    emphasis_magnitude = 1.2

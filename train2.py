@@ -3,7 +3,8 @@
 
 from __future__ import print_function
 
-from hparams import Hyperparams as hp, logdir_path
+from hparams import logdir_path
+import hparams as hp
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -14,7 +15,7 @@ import argparse
 
 
 def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queue=True):
-    model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
+    model = Model(mode="train2", batch_size=hp.Train2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -22,7 +23,7 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
     # Training Scheme
     global_step = tf.Variable(0, name='global_step', trainable=False)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train2.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate=hp.Train2.lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
         train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
@@ -46,7 +47,7 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(1, hp.train2.num_epochs + 1):
+        for epoch in range(1, hp.Train2.num_epochs + 1):
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 if queue:
                     sess.run(train_op)
@@ -57,7 +58,7 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
 
-            if epoch % hp.train2.save_per_epoch == 0:
+            if epoch % hp.Train2.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
 
                 # Eval at every n epochs

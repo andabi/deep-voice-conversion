@@ -6,18 +6,21 @@ from __future__ import print_function
 
 import argparse
 
-from data_load import get_batch_per_wav
+from data_load import get_wav_batch
 from models import Model
-from utils import *
+import numpy as np
+from utils import spectrogram2wav, inv_preemphasis
 from hparams import logdir_path
 import datetime
 import tensorflow as tf
-from hparams import Hyperparams as hp
+from hparams import Default as hp_default
+import hparams as hp
 
 
 def convert(logdir='logdir/default/train2', queue=False):
+
     # Load graph
-    model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
+    model = Model(mode="convert", batch_size=hp.Convert.batch_size, queue=queue)
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,
@@ -42,7 +45,7 @@ def convert(logdir='logdir/default/train2', queue=False):
         if queue:
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
         else:
-            mfcc, spec, mel = get_batch_per_wav(model.mode, model.batch_size)
+            mfcc, spec, mel = get_wav_batch(model.mode, model.batch_size)
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
         # Denormalizatoin
@@ -52,37 +55,32 @@ def convert(logdir='logdir/default/train2', queue=False):
         # y_log_spec = hp.min_log_spec + (hp.max_log_spec - hp.min_log_spec) * y_log_spec
 
         # Convert log of magnitude to magnitude
-        if model.log_mag:
-            pred_specs, y_specs = np.e ** pred_log_specs, np.e ** y_log_spec
-        else:
-            pred_specs = np.where(pred_log_specs < 0, 0., pred_log_specs)
-            y_specs = np.where(pred_specs < 0, 0., y_log_spec)
+        pred_specs, y_specs = np.e ** pred_log_specs, np.e ** y_log_spec
 
         # Emphasize the magnitude
-        pred_specs = np.power(pred_specs, hp.convert.emphasis_magnitude)
-        y_specs = np.power(y_specs, hp.convert.emphasis_magnitude)
+        pred_specs = np.power(pred_specs, hp.Convert.emphasis_magnitude)
+        y_specs = np.power(y_specs, hp.Convert.emphasis_magnitude)
 
         # Spectrogram to waveform
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), pred_specs))
-        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.n_fft, hp.win_length, hp.hop_length, hp.n_iter), y_specs))
+        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), pred_specs))
+        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), y_specs))
 
         # Apply inverse pre-emphasis
-        audio = inv_preemphasis(audio, coeff=hp.preemphasis)
-        y_audio = inv_preemphasis(y_audio, coeff=hp.preemphasis)
+        audio = inv_preemphasis(audio, coeff=hp_default.preemphasis)
+        y_audio = inv_preemphasis(y_audio, coeff=hp_default.preemphasis)
 
+        if not queue:
+            # Concatenate to a wav
+            y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
+            audio = np.reshape(audio, (1, audio.size), order='C')
+
+        # Write the result
+        tf.summary.audio('A', y_audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
+        tf.summary.audio('B', audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
 
         # Visualize PPGs
         heatmap = np.expand_dims(ppgs, 3)  # channel=1
         tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
-
-        # Concatenate to a wav
-        y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
-        audio = np.reshape(audio, (1, audio.size), order='C')
-
-        # Write the result
-        tf.summary.audio('A', y_audio, hp.sr, max_outputs=hp.convert.batch_size)
-        tf.summary.audio('B', audio, hp.sr, max_outputs=hp.convert.batch_size)
-
 
         writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
         writer.close()
