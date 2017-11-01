@@ -85,8 +85,8 @@ def summaries(loss):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case1', type=str, help='case1')
-    parser.add_argument('case2', type=str, help='case2')
+    parser.add_argument('case1', type=str, help='experiment case name of train1')
+    parser.add_argument('case2', type=str, help='experiment case name of train2')
     arguments = parser.parse_args()
     return arguments
 

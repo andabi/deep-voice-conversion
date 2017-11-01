@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 #/usr/bin/python2
 
-
 # path
-## remote
-# data_path_base = '/data/private/vc/datasets'
-# logdir_path = '/data/private/vc/logdir'
-
 ## local
 data_path_base = './datasets'
 logdir_path = './logdir'
+
+## remote
+# data_path_base = '/data/private/vc/datasets'
+# logdir_path = '/data/private/vc/logdir'
 
 
 class Default:
@@ -66,10 +65,7 @@ class Train1:
 
 class Train2:
     # path
-    data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-    # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
-    # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
-    # data_path = '{}/kate/*_split/*.wav'.format(data_path_base)
+    data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
 
     # model
     hidden_units = 512  # alias = E
@@ -102,10 +98,6 @@ class Test2:
 class Convert:
     # path
     data_path = '{}/arctic/bdl/*.wav'.format(data_path_base)
-    # data_path = '{}/timit/TIMIT/TEST/*/*/*.wav'.format(data_path_base)
-    # data_path = '{}/test/*.wav'.format(data_path_base)
-    # data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
-    # data_path = '{}/kate/therese_raquin_split/*.wav'.format(data_path_base)
 
     # convert
     batch_size = 2

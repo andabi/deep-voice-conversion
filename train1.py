@@ -79,7 +79,7 @@ def train(logdir='logdir/default/train1', queue=True):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case', type=str, help='case')
+    parser.add_argument('case', type=str, help='experiment case name')
     arguments = parser.parse_args()
     return arguments
 

@@ -91,7 +91,7 @@ def convert(logdir='logdir/default/train2', queue=False):
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case', type=str, help='case')
+    parser.add_argument('case', type=str, help='experiment case name')
     arguments = parser.parse_args()
     return arguments
 
