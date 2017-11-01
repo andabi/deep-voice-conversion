@@ -35,7 +35,7 @@ CBHG is known to be good for capturing features from sequential data.
 
 ### Net1 is a classifier.
 * Process: wav -> spectrogram -> mfccs -> phoneme dist.
-* Net1 classifies Spectrogram to phonemes that consists of 60 English phonemes at every timestep.
+* Net1 classifies spectrogram to phonemes that consists of 60 English phonemes at every timestep.
   * For each timestep, the input is log magnitude spectrogram and the target is phoneme dist.
 * Objective function is cross entropy loss.
 * [TIMIT dataset](https://catalog.ldc.upenn.edu/ldc93s1) used.
@@ -63,7 +63,7 @@ Net2 contains Net1 as a sub-network.
 ### Procedure
 * Train phase: Net1 and Net2 should be trained sequentially.
   * Train1(training Net1)
-    * Run `train1.py` to train and eval1.py` to test.
+    * Run `train1.py` to train and `eval1.py` to test.
   * Train2(training Net2)
     * Run `train2.py` to train and `eval2.py` to test.
       * Train2 should be trained after Train1 is done!

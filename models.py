@@ -118,8 +118,8 @@ class Model:
         return ppgs, preds_ppg, logits_ppg, pred_spec, pred_mel
 
     def loss_net2(self):
-        loss_spec = tf.reduce_mean(tf.abs(self.pred_spec - self.y_spec))
-        loss_mel = tf.reduce_mean(tf.abs(self.pred_mel - self.y_mel))
+        loss_spec = tf.reduce_mean(tf.squared_difference(self.pred_spec, self.y_spec))
+        loss_mel = tf.reduce_mean(tf.squared_difference(self.pred_mel, self.y_mel))
         loss = loss_spec + loss_mel
         return loss
 
