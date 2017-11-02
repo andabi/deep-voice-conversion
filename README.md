@@ -55,6 +55,12 @@ Net2 contains Net1 as a sub-network.
 * Griffin-Lim reconstruction when reverting wav from spectrogram.
 
 ## Implementations
+### Requirements
+* python 2.7
+* tensorflow >= 1.1
+* numpy >= 1.11.1
+* librosa == 0.5.1
+
 ### Settings
 * sample rate: 16,000Hz
 * window length: 25ms
