@@ -72,7 +72,7 @@ class Model:
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG
-            out = cbhg(prenet_out, hp.Train1.num_banks, hp.Train1.hidden_units // 2, hp.Train1.num_highwaynet_blocks, hp.Train1.norm_type, self.is_training)
+            out = cbhg(prenet_out, hp.Train1.num_banks, hp.Train1.hidden_units // 2, hp.Train1.num_highway_blocks, hp.Train1.norm_type, self.is_training)
 
             # Final linear projection
             logits = tf.layers.dense(out, len(phn2idx))  # (N, T, V)

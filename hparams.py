@@ -51,7 +51,7 @@ class Train1:
     # model
     hidden_units = 256  # alias = E
     num_banks = 16
-    num_highwaynet_blocks = 4
+    num_highway_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t = 1.0  # temperature
     dropout_rate = 0.2
@@ -65,7 +65,8 @@ class Train1:
 
 class Train2:
     # path
-    data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
+    data_path = '{}/kate/sense_and_sensibility_split/*.wav'.format(data_path_base)
+    # data_path = '{}/arctic/slt/*.wav'.format(data_path_base)
 
     # model
     hidden_units = 512  # alias = E
