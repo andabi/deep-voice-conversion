@@ -24,7 +24,7 @@ class Default:
     preemphasis = 0.97
     n_mfcc = 40
     n_iter = 60 # Number of inversion iterations
-    n_mels = 128
+    n_mels = 80
     duration = 2
 
     # mean_log_spec = -4.25
@@ -35,7 +35,7 @@ class Default:
     # model
     hidden_units = 256  # alias = E
     num_banks = 16
-    num_highwaynet_blocks = 4
+    num_highway_blocks = 4
     norm_type = 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t = 1.0  # temperature
     dropout_rate = 0.2

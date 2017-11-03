@@ -31,8 +31,6 @@ def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True,
     # timesteps
     num_timesteps = mfccs.shape[0]
 
-    librosa.feature.mfcc()
-
     # phones (targets)
     phn_file = wav_file.replace("WAV.wav", "PHN").replace("wav", "PHN")
     phn2idx, idx2phn = load_vocab()
@@ -99,11 +97,11 @@ def _get_mfcc_log_spec_and_log_mel_spec(wav, preemphasis_coeff, n_fft, win_lengt
 
     # Get mel-spectrogram
     mel_basis = librosa.filters.mel(hp_default.sr, hp_default.n_fft, hp_default.n_mels)  # (n_mels, 1+n_fft//2)
-    mel = np.dot(mel_basis, mag ** 2)  # (n_mels, t) # mel spectrogram
+    mel = np.dot(mel_basis, mag)  # (n_mels, t) # mel spectrogram
 
     # Get mfccs
-    db = librosa.power_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp_default.n_mfcc, db.shape[0]), mel)
+    db = librosa.amplitude_to_db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp_default.n_mfcc, db.shape[0]), db)
 
     # Log
     mag = np.log(mag + sys.float_info.epsilon)
