@@ -17,7 +17,7 @@ from hparams import Default as hp_default
 import hparams as hp
 
 
-def convert(logdir='logdir/default/train2', queue=False):
+def convert(logdir='logdir/default/train2', queue=False, writer=None):
 
     # Load graph
     model = Model(mode="convert", batch_size=hp.Convert.batch_size, queue=queue)
@@ -35,12 +35,13 @@ def convert(logdir='logdir/default/train2', queue=False):
         sess.run(tf.global_variables_initializer())
         model.load(sess, 'convert', logdir=logdir)
 
-        writer = tf.summary.FileWriter(logdir, sess.graph)
+        if not writer:
+            writer = tf.summary.FileWriter(logdir, sess.graph)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        gs = Model.get_global_step(logdir)
+        epoch, gs = Model.get_epoch_and_global_step(logdir)
 
         if queue:
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])

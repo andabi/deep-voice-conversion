@@ -21,7 +21,8 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
     loss_op = model.loss_net2()
 
     # Training Scheme
-    global_step = tf.Variable(0, name='global_step', trainable=False)
+    epoch, gs = Model.get_epoch_and_global_step(logdir2)
+    global_step = tf.Variable(gs, name='global_step', trainable=False)
 
     optimizer = tf.train.AdamOptimizer(learning_rate=hp.Train2.lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
@@ -47,8 +48,8 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(1, hp.Train2.num_epochs + 1):
-            for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+        for epoch in range(epoch + 1, hp.Train2.num_epochs + 1):
+            for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 if queue:
                     sess.run(train_op)
                 else:
@@ -63,11 +64,11 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
 
                 # Eval at every n epochs
                 with tf.Graph().as_default():
-                    eval2.eval(logdir2, queue=False)
+                    eval2.eval(logdir2, queue=False, writer=writer)
 
                 # Convert at every n epochs
                 with tf.Graph().as_default():
-                    convert.convert(logdir2, queue=False)
+                    convert.convert(logdir2, queue=False, writer=writer)
 
             writer.add_summary(summ, global_step=gs)
 

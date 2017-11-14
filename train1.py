@@ -23,7 +23,8 @@ def train(logdir='logdir/default/train1', queue=True):
     acc_op = model.acc_net1()
 
     # Training Scheme
-    global_step = tf.Variable(0, name='global_step', trainable=False)
+    epoch, gs = Model.get_epoch_and_global_step(logdir)
+    global_step = tf.Variable(gs, name='global_step', trainable=False)
 
     optimizer = tf.train.AdamOptimizer(learning_rate=hp.Train1.lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
@@ -52,8 +53,8 @@ def train(logdir='logdir/default/train1', queue=True):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(1, hp.Train1.num_epochs + 1):
-            for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+        for epoch in range(epoch + 1, hp.Train1.num_epochs + 1):
+            for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 if queue:
                     sess.run(train_op)
                 else:
@@ -68,7 +69,7 @@ def train(logdir='logdir/default/train1', queue=True):
 
             # Write eval accuracy at every epoch
             with tf.Graph().as_default():
-                eval1.eval(logdir=logdir, queue=False)
+                eval1.eval(logdir=logdir, queue=False, writer=writer)
 
             writer.add_summary(summ, global_step=gs)
 

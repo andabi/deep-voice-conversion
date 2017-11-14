@@ -168,13 +168,14 @@ class Model:
         return model_name
 
     @staticmethod
-    def get_global_step(logdir):
+    def get_epoch_and_global_step(logdir):
         model_name = Model.get_model_name(logdir)
         if model_name:
-            gs = int(model_name.split('_')[3])
+            tokens = model_name.split('_')
+            epoch, gs = int(tokens[1]), int(tokens[3])
         else:
-            gs = 0
-        return gs
+            epoch = gs = 0
+        return epoch, gs
 
     @staticmethod
     def all_model_names(logdir):

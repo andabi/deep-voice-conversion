@@ -12,7 +12,7 @@ from hparams import logdir_path
 from models import Model
 
 
-def eval(logdir='logdir/default/train1', queue=False):
+def eval(logdir='logdir/default/train1', queue=False, writer=None):
     # Load graph
     model = Model(mode="test1", batch_size=hp.Test1.batch_size, queue=queue)
 
@@ -33,7 +33,8 @@ def eval(logdir='logdir/default/train1', queue=False):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        writer = tf.summary.FileWriter(logdir, sess.graph)
+        if not writer:
+            writer = tf.summary.FileWriter(logdir, sess.graph)
 
         # Load trained model
         sess.run(tf.global_variables_initializer())

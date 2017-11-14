@@ -8,10 +8,10 @@ from audio_utils import read, write, split_path
 
 
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
-src_path = '/Users/avin/git/vc/datasets/kate/sense_and_sensibility'
+src_path = '/Users/avin/git/vc/datasets/IU'
 target_path = '{}_split'.format(src_path)
 sr = 16000
-top_db = 30
+top_db = 25
 min_limit_len = sr  # 1s
 
 
@@ -24,7 +24,7 @@ def split(wav, top_db):
 num_files = num_files_split = 0
 max_len = max_len_split = 0
 min_len = min_len_split = float('inf')
-for filepath in glob.glob('{}/*.wav'.format(src_path)):
+for filepath in glob.glob('{}/**/*.wav'.format(src_path)):
     wav = read(filepath, sr, mono=True)
     split_wavs = split(wav, top_db)
     if not os.path.exists(target_path):

@@ -22,24 +22,28 @@ D = librosa.stft(y=y,
                  hop_length=hop_length,
                  win_length=win_length)
 mag = np.abs(D)
-scaled_mag = mag * 2
+scaled_mag = mag * 200
 
 # Get mel-spectrogram
 mel_basis = librosa.filters.mel(sr, n_fft, n_mels)  # (n_mels, 1+n_fft//2)
-mel = np.dot(mel_basis, mag ** 1)  # (n_mels, t) # mel spectrogram
-scaled_mel = np.dot(mel_basis, scaled_mag ** 1)
+mel = np.dot(mel_basis, mag)  # (n_mels, t) # mel spectrogram
+scaled_mel = np.dot(mel_basis, scaled_mag)
 
 # Get mfccs
-db = librosa.power_to_db(mel)
-scaled_db = librosa.power_to_db(scaled_mel)
+db = librosa.amplitude_to_db(mel)
+scaled_db = librosa.amplitude_to_db(scaled_mel)
 
-mfccs = np.dot(librosa.filters.dct(n_mfcc, db.shape[0]), mel)
-scaled_mfccs = np.dot(librosa.filters.dct(n_mfcc, db.shape[0]), scaled_mel)
+print(db)
+print(scaled_db)
+
+mfccs = np.dot(librosa.filters.dct(n_mfcc, db.shape[0]), db)
+scaled_mfccs = np.dot(librosa.filters.dct(n_mfcc, db.shape[0]), scaled_db)
 
 mfccs = mfccs.T  # (t, n_mfccs)
 scaled_mfccs = scaled_mfccs.T
 
-assert(np.all(mfccs * 2 == scaled_mfccs))
+# assert(np.all(mfccs * 2 == scaled_mfccs))
 
+print(mfccs / scaled_mfccs)
 print(mfccs)
 print(scaled_mfccs)

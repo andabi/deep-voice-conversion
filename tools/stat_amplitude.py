@@ -6,9 +6,11 @@ from audio_utils import read
 import librosa
 import numpy as np
 
-src_path = '/Users/avin/git/vc/datasets/timit/TIMIT/TRAIN/*/*'
+src_path = '/Users/avin/git/vc/datasets/IU_split'
+# src_path = '/Users/avin/git/vc/datasets/timit/TIMIT/TRAIN/*/*'
 # src_path = '/Users/avin/git/vc/datasets/kate/sense_and_sensibility_split'
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
+# src_path = '/Users/avin/git/vc/datasets/arctic/slt'
 # src_path = '/Users/avin/git/vc/datasets/kate/therese_raquin_split'
 sr = 16000
 n_fft = 512
