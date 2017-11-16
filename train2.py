@@ -27,7 +27,11 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
     optimizer = tf.train.AdamOptimizer(learning_rate=hp.Train2.lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
-        train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
+
+        # Gradient clipping to prevent loss explosion
+        gvs = optimizer.compute_gradients(loss_op, var_list=var_list)
+        clipped_gvs = [(tf.clip_by_value(grad, hp.Train2.clip_value_min, hp.Train2.clip_value_max), var) for grad, var in gvs]
+        train_op = optimizer.apply_gradients(clipped_gvs, global_step=global_step)
 
     # Summary
     summ_op = summaries(loss_op)

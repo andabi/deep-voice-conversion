@@ -80,6 +80,8 @@ class Train2:
     # train
     batch_size = 32
     lr = 0.0005
+    clip_value_max = 5.
+    clip_value_min = -5.
     num_epochs = 10000
     save_per_epoch = 50
 
