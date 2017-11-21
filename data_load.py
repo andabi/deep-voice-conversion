@@ -10,23 +10,25 @@ from random import sample
 import tensorflow as tf
 from tensorflow.python.platform import tf_logging as logging
 
-import hparams as hp
-from hparams import Default as hp_default
-from utils import *
-from utils import preemphasis
+from hparam import Hparam
+from utils import preemphasis, wav_random_crop
+import numpy as np
+import librosa
+from hparam import data_path_base
 
 
-def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True,
-                         length=int(hp_default.duration / hp_default.frame_shift + 1)):
+def get_mfccs_and_phones(wav_file, sr, length, trim=False, random_crop=True):
+    hp = Hparam.get_global_hparam()
+
     '''This is applied in `train1` or `test1` phase.
     '''
 
     # Load
     wav, sr = librosa.load(wav_file, sr=sr)
 
-    mfccs, _, _ = _get_mfcc_log_spec_and_log_mel_spec(wav, hp_default.preemphasis, hp_default.n_fft,
-                                                      hp_default.win_length,
-                                                      hp_default.hop_length)
+    mfccs, _, _ = _get_mfcc_log_spec_and_log_mel_spec(wav, hp.default.preemphasis, hp.default.n_fft,
+                                                      hp.default.win_length,
+                                                      hp.default.hop_length)
 
     # timesteps
     num_timesteps = mfccs.shape[0]
@@ -38,7 +40,7 @@ def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True,
     bnd_list = []
     for line in open(phn_file, 'r').read().splitlines():
         start_point, _, phn = line.split()
-        bnd = int(start_point) // hp_default.hop_length
+        bnd = int(start_point) // hp.default.hop_length
         phns[bnd:] = phn2idx[phn]
         bnd_list.append(bnd)
 
@@ -64,30 +66,34 @@ def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True,
     return mfccs, phns
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, duration=None, random_crop=False):
+def get_mfccs_and_spectrogram(wav_file, win_length, hop_length, trim=True, duration=None, random_crop=False):
     '''This is applied in `train2`, `test2` or `convert` phase.
     '''
 
+    hp = Hparam.get_global_hparam()
+
     # Load
-    wav, _ = librosa.load(wav_file, sr=hp_default.sr)
+    wav, _ = librosa.load(wav_file, sr=hp.default.sr)
 
     # Trim
     if trim:
-        wav, _ = librosa.effects.trim(wav)
+        wav, _ = librosa.effects.trim(wav, frame_length=win_length, hop_length=hop_length)
 
     if random_crop:
-        wav = wav_random_crop(wav, hp_default.sr, duration)
+        wav = wav_random_crop(wav, hp.default.sr, duration)
 
     # Padding or crop
     if duration:
-        length = hp_default.sr * duration
+        length = hp.default.sr * duration
         wav = librosa.util.fix_length(wav, length)
 
-    return _get_mfcc_log_spec_and_log_mel_spec(wav, hp_default.preemphasis, hp_default.n_fft,
-                                               hp_default.win_length, hp_default.hop_length)
+    return _get_mfcc_log_spec_and_log_mel_spec(wav, hp.default.preemphasis, hp.default.n_fft, win_length, hop_length)
 
 
 def _get_mfcc_log_spec_and_log_mel_spec(wav, preemphasis_coeff, n_fft, win_length, hop_length):
+
+    hp = Hparam.get_global_hparam()
+
     # Pre-emphasis
     y_preem = preemphasis(wav, coeff=preemphasis_coeff)
 
@@ -96,12 +102,12 @@ def _get_mfcc_log_spec_and_log_mel_spec(wav, preemphasis_coeff, n_fft, win_lengt
     mag = np.abs(D)
 
     # Get mel-spectrogram
-    mel_basis = librosa.filters.mel(hp_default.sr, hp_default.n_fft, hp_default.n_mels)  # (n_mels, 1+n_fft//2)
+    mel_basis = librosa.filters.mel(hp.default.sr, hp.default.n_fft, hp.default.n_mels)  # (n_mels, 1+n_fft//2)
     mel = np.dot(mel_basis, mag)  # (n_mels, t) # mel spectrogram
 
     # Get mfccs
     db = librosa.amplitude_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp_default.n_mfcc, db.shape[0]), db)
+    mfccs = np.dot(librosa.filters.dct(hp.default.n_mfcc, db.shape[0]), db)
 
     # Log
     mag = np.log(mag + sys.float_info.epsilon)
@@ -173,7 +179,9 @@ def get_mfccs_and_phones_queue(wav_file):
        extracts mfccs (inputs), and phones (target), then enqueue them again.
        This is applied in `train1` or `test1` phase.
     '''
-    mfccs, phns = get_mfccs_and_phones(wav_file, hp_default.sr)
+    hp = Hparam.get_global_hparam()
+
+    mfccs, phns = get_mfccs_and_phones(wav_file, hp.default.sr, length=hp.default.hop_length+1)
     return mfccs, phns
 
 
@@ -183,7 +191,10 @@ def get_mfccs_and_spectrogram_queue(wav_file):
        extracts mfccs and spectrogram, then enqueue them again.
        This is applied in `train2` or `test2` phase.
     '''
-    mfccs, spec, mel = get_mfccs_and_spectrogram(wav_file, duration=hp_default.duration)
+    hp = Hparam.get_global_hparam()
+
+    mfccs, spec, mel = get_mfccs_and_spectrogram(wav_file, duration=hp.default.duration,
+                                                 win_length=hp.default.win_length, hop_length=hp.default.hop_length)
     return mfccs, spec, mel
 
 
@@ -191,6 +202,7 @@ def get_batch_queue(mode, batch_size):
     '''Loads data and put them in mini batch queues.
     mode: A string. Either `train1` | `test1` | `train2` | `test2` | `convert`.
     '''
+    hp = Hparam.get_global_hparam()
 
     if mode not in ('train1', 'test1', 'train2', 'test2', 'convert'):
         raise Exception("invalid mode={}".format(mode))
@@ -217,7 +229,7 @@ def get_batch_queue(mode, batch_size):
 
             # create batch queues
             mfcc, ppg = tf.train.batch([mfcc, ppg],
-                                       shapes=[(None, hp_default.n_mfcc), (None,)],
+                                       shapes=[(None, hp.default.n_mfcc), (None,)],
                                        num_threads=32,
                                        batch_size=batch_size,
                                        capacity=batch_size * 32,
@@ -232,8 +244,8 @@ def get_batch_queue(mode, batch_size):
 
             # create batch queues
             mfcc, spec, mel = tf.train.batch([mfcc, spec, mel],
-                                             shapes=[(None, hp_default.n_mfcc), (None, 1 + hp_default.n_fft // 2),
-                                                     (None, hp_default.n_mels)],
+                                             shapes=[(None, hp.default.n_mfcc), (None, 1 + hp.default.n_fft // 2),
+                                                     (None, hp.default.n_mels)],
                                              num_threads=64,
                                              batch_size=batch_size,
                                              capacity=batch_size * 64,
@@ -245,6 +257,7 @@ def get_batch(mode, batch_size):
     '''Loads data.
     mode: A string. Either `train1` | `test1` | `train2` | `test2` | `convert`.
     '''
+    hp = Hparam.get_global_hparam()
 
     if mode not in ('train1', 'test1', 'train2', 'test2', 'convert'):
         raise Exception("invalid mode={}".format(mode))
@@ -256,32 +269,36 @@ def get_batch(mode, batch_size):
         target_wavs = sample(wav_files, batch_size)
 
         if mode in ('train1', 'test1'):
-            mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp_default.sr), target_wavs)))
+            mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.default.sr, length=hp.default.hop_length+1), target_wavs)))
             return mfcc, ppg
         else:
             mfcc, spec, mel = map(_get_zero_padded, zip(*map(
-                lambda wav_file: get_mfccs_and_spectrogram(wav_file, duration=hp_default.duration), target_wavs)))
+                lambda wav_file: get_mfccs_and_spectrogram(wav_file, duration=hp.default.duration,
+                                                           win_length=hp.default.win_length,
+                                                           hop_length=hp.default.hop_length), target_wavs)))
             return mfcc, spec, mel
 
 
 # TODO generalize for all mode
 def get_wav_batch(mode, batch_size):
+    hp = Hparam.get_global_hparam()
+
     with tf.device('/cpu:0'):
         # Load data
         wav_files = load_data(mode=mode)
         wav_file = sample(wav_files, 1)[0]
-        wav, _ = librosa.load(wav_file, sr=hp_default.sr)
+        wav, _ = librosa.load(wav_file, sr=hp.default.sr)
 
-        total_duration = hp_default.duration * batch_size
-        total_len = hp_default.sr * total_duration
+        total_duration = hp.default.duration * batch_size
+        total_len = hp.default.sr * total_duration
         wav = librosa.util.fix_length(wav, total_len)
 
-        length = hp_default.sr * hp_default.duration
+        length = hp.default.sr * hp.default.duration
         batched = np.reshape(wav, (batch_size, length))
 
         mfcc, spec, mel = map(_get_zero_padded, zip(
-            *map(lambda w: _get_mfcc_log_spec_and_log_mel_spec(w, hp_default.preemphasis, hp_default.n_fft,
-                                                               hp_default.win_length, hp_default.hop_length), batched)))
+            *map(lambda w: _get_mfcc_log_spec_and_log_mel_spec(w, hp.default.preemphasis, hp.default.n_fft,
+                                                               hp.default.win_length, hp.default.hop_length), batched)))
     return mfcc, spec, mel
 
 
@@ -376,16 +393,18 @@ def load_data(mode):
       `test2`: ARCTIC SLT waveform -> mfccs -> PGGs (inputs) -> spectrogram (target)(accuracy)
       `convert`: ARCTIC BDL waveform -> mfccs (inputs) -> PGGs -> spectrogram -> waveform (output)
     '''
+    hp = Hparam.get_global_hparam()
+
     if mode == "train1":
-        wav_files = glob.glob(hp.Train1.data_path)
+        wav_files = glob.glob('{}/{}'.format(data_path_base, hp.train1.data_path))
     elif mode == "test1":
-        wav_files = glob.glob(hp.Test1.data_path)
+        wav_files = glob.glob('{}/{}'.format(data_path_base, hp.test1.data_path))
     elif mode == "train2":
-        testset_size = hp.Test2.batch_size * 4
-        wav_files = glob.glob(hp.Train2.data_path)[testset_size:]
+        testset_size = hp.test2.batch_size * 4
+        wav_files = glob.glob('{}/{}'.format(data_path_base, hp.train2.data_path))[testset_size:]
     elif mode == "test2":
-        testset_size = hp.Test2.batch_size * 4
-        wav_files = glob.glob(hp.Train2.data_path)[:testset_size]
+        testset_size = hp.test2.batch_size * 4
+        wav_files = glob.glob('{}/{}'.format(data_path_base, hp.train2.data_path))[:testset_size]
     elif mode == "convert":
-        wav_files = glob.glob(hp.Convert.data_path)
+        wav_files = glob.glob('{}/{}'.format(data_path_base, hp.convert.data_path))
     return wav_files

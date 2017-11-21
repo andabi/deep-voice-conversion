@@ -1,0 +1,6 @@
+---
+default_iu3:
+  convert:
+      data_path: 'korean/*.wav'
+      one_full_wav: True
+      batch_size: 10

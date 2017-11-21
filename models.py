@@ -6,15 +6,14 @@ import os
 import tensorflow as tf
 
 from data_load import get_batch_queue, load_vocab
-from hparams import Default as hp_default
 from modules import prenet, cbhg
-import hparams as hp
 
 
 class Model:
-    def __init__(self, mode=None, batch_size=hp_default.batch_size, queue=True):
+    def __init__(self, mode, batch_size, hp, queue=True):
         self.mode = mode
         self.batch_size = batch_size
+        self.hp = hp
         self.queue = queue
         self.is_training = self.get_is_training(mode)
 
@@ -40,10 +39,10 @@ class Model:
         if mode not in ('train1', 'test1', 'train2', 'test2', 'convert'):
             raise Exception("invalid mode={}".format(mode))
 
-        x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, hp_default.n_mfcc))
+        x_mfcc = tf.placeholder(tf.float32, shape=(batch_size, None, self.hp.default.n_mfcc))
         y_ppgs = tf.placeholder(tf.int32, shape=(batch_size, None,))
-        y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + hp_default.n_fft // 2))
-        y_mel = tf.placeholder(tf.float32, shape=(batch_size, None, hp_default.n_mels))
+        y_spec = tf.placeholder(tf.float32, shape=(batch_size, None, 1 + self.hp.default.n_fft // 2))
+        y_mel = tf.placeholder(tf.float32, shape=(batch_size, None, self.hp.default.n_mels))
         num_batch = 1
 
         if queue:
@@ -67,23 +66,23 @@ class Model:
 
             # Pre-net
             prenet_out = prenet(self.x_mfcc,
-                                num_units=[hp.Train1.hidden_units, hp.Train1.hidden_units // 2],
-                                dropout_rate=hp.Train1.dropout_rate,
+                                num_units=[self.hp.train1.hidden_units, self.hp.train1.hidden_units // 2],
+                                dropout_rate=self.hp.train1.dropout_rate,
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG
-            out = cbhg(prenet_out, hp.Train1.num_banks, hp.Train1.hidden_units // 2, hp.Train1.num_highway_blocks, hp.Train1.norm_type, self.is_training)
+            out = cbhg(prenet_out, self.hp.train1.num_banks, self.hp.train1.hidden_units // 2, self.hp.train1.num_highway_blocks, self.hp.train1.norm_type, self.is_training)
 
             # Final linear projection
             logits = tf.layers.dense(out, len(phn2idx))  # (N, T, V)
-            ppgs = tf.nn.softmax(logits / hp.Train1.t)  # (N, T, V)
+            ppgs = tf.nn.softmax(logits / self.hp.train1.t)  # (N, T, V)
             preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
 
         return ppgs, preds, logits
 
     def loss_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / hp.Train1.t, labels=self.y_ppgs)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / self.hp.train1.t, labels=self.y_ppgs)
         loss *= istarget
         loss = tf.reduce_mean(loss)
         return loss
@@ -102,17 +101,17 @@ class Model:
         with tf.variable_scope('net2'):
             # Pre-net
             prenet_out = prenet(ppgs,
-                                num_units=[hp.Train2.hidden_units, hp.Train2.hidden_units // 2],
-                                dropout_rate=hp.Train2.dropout_rate,
+                                num_units=[self.hp.train2.hidden_units, self.hp.train2.hidden_units // 2],
+                                dropout_rate=self.hp.train2.dropout_rate,
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG1: mel-scale
-            pred_mel = cbhg(prenet_out, hp.Train2.num_banks, hp.Train2.hidden_units // 2, hp.Train2.num_highway_blocks, hp.Train2.norm_type, self.is_training, scope="cbhg1")
+            pred_mel = cbhg(prenet_out, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2, self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training, scope="cbhg1")
             pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # log magnitude: (N, T, n_mels)
 
             # CBHG2: linear-scale
-            pred_spec = tf.layers.dense(pred_mel, hp.Train2.hidden_units // 2)  # log magnitude: (N, T, n_mels)
-            pred_spec = cbhg(pred_spec, hp.Train2.num_banks, hp.Train2.hidden_units // 2, hp.Train2.num_highway_blocks, hp.Train2.norm_type, self.is_training, scope="cbhg2")
+            pred_spec = tf.layers.dense(pred_mel, self.hp.train2.hidden_units // 2)  # log magnitude: (N, T, n_mels)
+            pred_spec = cbhg(pred_spec, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2, self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training, scope="cbhg2")
             pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
 
         return ppgs, preds_ppg, logits_ppg, pred_spec, pred_mel

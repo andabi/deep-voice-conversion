@@ -7,13 +7,15 @@ import tensorflow as tf
 from data_load import get_batch
 from models import Model
 import argparse
-from hparams import logdir_path
-import hparams as hp
+from hparam import logdir_path
+from hparam import Hparam
 
 
-def eval(logdir='logdir/default/train2', queue=True, writer=None):
+def eval(logdir, writer, queue=True):
+    hp = Hparam.get_global_hparam()
+
     # Load graph
-    model = Model(mode="test2", batch_size=hp.Test2.batch_size, queue=queue)
+    model = Model(mode="test2", batch_size=hp.test2.batch_size, hp=hp, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -30,9 +32,6 @@ def eval(logdir='logdir/default/train2', queue=True, writer=None):
         sess.run(tf.global_variables_initializer())
         model.load(sess, 'test2', logdir=logdir)
 
-        if not writer:
-            writer = tf.summary.FileWriter(logdir, sess.graph)
-
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
@@ -43,7 +42,6 @@ def eval(logdir='logdir/default/train2', queue=True, writer=None):
             summ, loss = sess.run([summ_op, loss_op], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
         writer.add_summary(summ)
-        writer.close()
 
         coord.request_stop()
         coord.join(threads)
@@ -67,5 +65,10 @@ if __name__ == '__main__':
     args = get_arguments()
     case = args.case
     logdir = '{}/{}/train2'.format(logdir_path, case)
-    eval(logdir=logdir)
+    Hparam(case).set_as_global_hparam()
+
+    writer = tf.summary.FileWriter(logdir)
+    eval(logdir=logdir, writer=writer)
+    writer.close()
+
     print("Done")

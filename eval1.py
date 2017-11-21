@@ -6,15 +6,17 @@ from __future__ import print_function
 import argparse
 
 import tensorflow as tf
-import hparams as hp
+from hparam import Hparam
 from data_load import get_batch
-from hparams import logdir_path
+from hparam import logdir_path
 from models import Model
 
 
-def eval(logdir='logdir/default/train1', queue=False, writer=None):
+def eval(logdir, writer, queue=False):
+    hp = Hparam.get_global_hparam()
+
     # Load graph
-    model = Model(mode="test1", batch_size=hp.Test1.batch_size, queue=queue)
+    model = Model(mode="test1", batch_size=hp.test1.batch_size, hp=hp, queue=queue)
 
     # Accuracy
     acc_op = model.acc_net1()
@@ -33,9 +35,6 @@ def eval(logdir='logdir/default/train1', queue=False, writer=None):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        if not writer:
-            writer = tf.summary.FileWriter(logdir, sess.graph)
-
         # Load trained model
         sess.run(tf.global_variables_initializer())
         model.load(sess, 'train1', logdir=logdir)
@@ -51,8 +50,6 @@ def eval(logdir='logdir/default/train1', queue=False, writer=None):
         print("acc:", acc)
         print("loss:", loss)
         print('\n')
-
-        writer.close()
 
         coord.request_stop()
         coord.join(threads)
@@ -75,5 +72,10 @@ if __name__ == '__main__':
     args = get_arguments()
     case = args.case
     logdir = '{}/{}/train1'.format(logdir_path, case)
-    eval(logdir=logdir)
+    Hparam(case).set_as_global_hparam()
+
+    writer = tf.summary.FileWriter(logdir)
+    eval(logdir=logdir, writer=writer)
+    writer.close()
+
     print("Done")

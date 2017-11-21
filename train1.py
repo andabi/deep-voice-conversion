@@ -2,8 +2,7 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-import hparams as hp
-from hparams import logdir_path
+from hparam import logdir_path
 from tqdm import tqdm
 
 from modules import *
@@ -11,10 +10,13 @@ from models import Model
 import eval1
 from data_load import get_batch
 import argparse
+from hparam import Hparam
 
 
-def train(logdir='logdir/default/train1', queue=True):
-    model = Model(mode="train1", batch_size=hp.Train1.batch_size, queue=queue)
+def train(logdir, queue=True):
+    hp = Hparam.get_global_hparam()
+
+    model = Model(mode="train1", batch_size=hp.train1.batch_size, hp=hp, queue=queue)
 
     # Loss
     loss_op = model.loss_net1()
@@ -26,7 +28,7 @@ def train(logdir='logdir/default/train1', queue=True):
     epoch, gs = Model.get_epoch_and_global_step(logdir)
     global_step = tf.Variable(gs, name='global_step', trainable=False)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.Train1.lr)
+    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train1.lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
@@ -49,11 +51,11 @@ def train(logdir='logdir/default/train1', queue=True):
         sess.run(tf.global_variables_initializer())
         model.load(sess, 'train1', logdir=logdir)
 
-        writer = tf.summary.FileWriter(logdir, sess.graph)
+        writer = tf.summary.FileWriter(logdir)
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(epoch + 1, hp.Train1.num_epochs + 1):
+        for epoch in range(epoch + 1, hp.train1.num_epochs + 1):
             for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
                 if queue:
                     sess.run(train_op)
@@ -64,7 +66,7 @@ def train(logdir='logdir/default/train1', queue=True):
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
 
-            if epoch % hp.Train1.save_per_epoch == 0:
+            if epoch % hp.train1.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
 
             # Write eval accuracy at every epoch
@@ -88,5 +90,7 @@ if __name__ == '__main__':
     args = get_arguments()
     case = args.case
     logdir = '{}/{}/train1'.format(logdir_path, case)
+    Hparam(case).set_as_global_hparam()
+
     train(logdir=logdir)
     print("Done")
