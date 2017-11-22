@@ -104,6 +104,8 @@ if __name__ == '__main__':
     logdir2 = '{}/{}/train2'.format(logdir_path, case2)
     Hparam(case2).set_as_global_hparam()
 
+    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(case1, case2, logdir1, logdir2))
+
     train(logdir1=logdir1, logdir2=logdir2)
 
     print("Done")

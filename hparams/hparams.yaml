@@ -1,6 +1,15 @@
 ---
 default_iu3:
+  train2:
+      data_path: 'IU/*_split/*.wav'
   convert:
-      data_path: 'korean/*.wav'
-      one_full_wav: True
-      batch_size: 10
+      one_full_wav: False
+      batch_size: 4
+---
+iu:
+  train2:
+      data_path: 'IU/*_split/*.wav'
+      batch_size: 64
+  convert:
+      one_full_wav: False
+      batch_size: 4

@@ -21,7 +21,7 @@ D = librosa.stft(y=y,
                  n_fft=n_fft,
                  hop_length=hop_length,
                  win_length=win_length)
-mag = np.abs(D)
+mag = np.abs(D)  # (1+n_fft//2, t)
 scaled_mag = mag * 200
 
 # Get mel-spectrogram

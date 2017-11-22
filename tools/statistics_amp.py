@@ -6,7 +6,9 @@ from audio_utils import read
 import librosa
 import numpy as np
 
-src_path = '/Users/avin/git/vc/datasets/IU_split'
+src_path = '/Users/avin/git/vc/datasets/IU/v_app_split'
+# src_path = '/Users/avin/git/vc/datasets/IU/melon_radio_season1_split'
+# src_path = '/Users/avin/git/vc/datasets/IU/melon_radio_season2_split'
 # src_path = '/Users/avin/git/vc/datasets/timit/TIMIT/TRAIN/*/*'
 # src_path = '/Users/avin/git/vc/datasets/kate/sense_and_sensibility_split'
 # src_path = '/Users/avin/git/vc/datasets/arctic/bdl'
@@ -38,26 +40,25 @@ log_amps = np.array(log_amps)
 dbs = np.array(dbs)
 
 
-mean = np.mean(amps)
-std = np.std(amps)
+mean_amps = np.mean(amps)
+std_amps = np.std(amps)
+max_amps = np.max(amps)
+min_amps = np.min(amps)
 
-max = np.max(amps)
-min = np.min(amps)
+mean_dbs = np.mean(dbs)
+std_dbs = np.std(dbs)
+max_dbs = np.max(dbs)
+min_dbs = np.min(dbs)
 
-# mean = np.mean(dbs)
-# std = np.std(dbs)
-#
-# max = np.max(dbs)
-# min = np.min(dbs)
-
-# mean = np.mean(log_amps)
-# std = np.std(log_amps)
-#
-# max = np.max(log_amps)
-# min = np.min(log_amps)
+mean_log_amps = np.mean(log_amps)
+std_log_amps = np.std(log_amps)
+max_log_amps = np.max(log_amps)
+min_log_amps = np.min(log_amps)
 
 # normalized = (values - mean) / std
 # normalized = (log_amps - min) / (max - min)
 
-print("max: {}, min: {}, mean: {}, std: {}".format(max, min, mean, std))
+print("[amps]     max: {}, min: {}, mean: {}, std: {}".format(max_amps, min_amps, mean_amps, std_amps))
+print("[log_amps] max: {}, min: {}, mean: {}, std: {}".format(max_log_amps, min_log_amps, mean_log_amps, std_log_amps))
+print("[decibels] max: {}, min: {}, mean: {}, std: {}".format(max_dbs, min_dbs, mean_dbs, std_dbs))
 # print(normalized)
