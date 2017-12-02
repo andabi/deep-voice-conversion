@@ -12,6 +12,9 @@ import convert, eval2
 from data_load import get_batch
 import argparse
 from hparam import Hparam
+import math
+import os
+from utils import remove_all_files
 
 
 def train(logdir1, logdir2, queue=True):
@@ -26,17 +29,24 @@ def train(logdir1, logdir2, queue=True):
     epoch, gs = Model.get_epoch_and_global_step(logdir2)
     global_step = tf.Variable(gs, name='global_step', trainable=False)
 
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train2.lr)
+    lr = tf.placeholder(tf.float32, shape=[])
+    optimizer = tf.train.AdamOptimizer(learning_rate=lr)
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
 
         # Gradient clipping to prevent loss explosion
         gvs = optimizer.compute_gradients(loss_op, var_list=var_list)
-        clipped_gvs = [(tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max), var) for grad, var in gvs]
-        train_op = optimizer.apply_gradients(clipped_gvs, global_step=global_step)
+        gvs = [(tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max), var) for grad, var in gvs]
+        gvs = [(tf.clip_by_norm(grad, hp.train2.clip_norm), var) for grad, var in gvs]
+
+        train_op = optimizer.apply_gradients(gvs, global_step=global_step)
 
     # Summary
-    summ_op = summaries(loss_op)
+    # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
+    #     tf.summary.histogram(v.name, v)
+    tf.summary.scalar('net2/train/loss', loss_op)
+    tf.summary.scalar('net2/train/lr', lr)
+    summ_op = tf.summary.merge_all()
 
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
@@ -56,14 +66,21 @@ def train(logdir1, logdir2, queue=True):
 
         for epoch in range(epoch + 1, hp.train2.num_epochs + 1):
             for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+                gs = sess.run(global_step)
+
+                # Cyclic learning rate
+                feed_dict = {lr: get_cyclic_lr(gs)}
                 if queue:
-                    sess.run(train_op)
+                    sess.run(train_op, feed_dict=feed_dict)
                 else:
                     mfcc, spec, mel = get_batch(model.mode, model.batch_size)
-                    sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+                    feed_dict.update({model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+                    sess.run(train_op, feed_dict=feed_dict)
 
             # Write checkpoint files at every epoch
-            summ, gs = sess.run([summ_op, global_step])
+            gs = sess.run(global_step)
+            feed_dict = {lr: get_cyclic_lr(gs)}
+            summ = sess.run(summ_op, feed_dict=feed_dict)
 
             if epoch % hp.train2.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
@@ -83,17 +100,17 @@ def train(logdir1, logdir2, queue=True):
         coord.join(threads)
 
 
-def summaries(loss):
-    # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
-    #     tf.summary.histogram(v.name, v)
-    tf.summary.scalar('net2/train/loss', loss)
-    return tf.summary.merge_all()
+def get_cyclic_lr(step):
+    lr_margin = hp.train2.lr_cyclic_margin * math.sin(2. * math.pi / hp.train2.lr_cyclic_steps * step)
+    lr = hp.train2.lr + lr_margin
+    return lr
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case1', type=str, help='experiment case name of train1')
     parser.add_argument('case2', type=str, help='experiment case name of train2')
+    parser.add_argument('-r', action='store_true', help='start training from the beginning.')
     arguments = parser.parse_args()
     return arguments
 
@@ -102,7 +119,14 @@ if __name__ == '__main__':
     case1, case2 = args.case1, args.case2
     logdir1 = '{}/{}/train1'.format(logdir_path, case1)
     logdir2 = '{}/{}/train2'.format(logdir_path, case2)
-    Hparam(case2).set_as_global_hparam()
+    hp = Hparam(case2).set_as_global_hparam()
+
+    if args.r:
+        ckpt = '{}/checkpoint'.format(os.path.join(logdir2))
+        if os.path.exists(ckpt):
+            os.remove(ckpt)
+            remove_all_files(os.path.join(hp.logdir, 'events.out'))
+            remove_all_files(os.path.join(hp.logdir, 'epoch_'))
 
     print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(case1, case2, logdir1, logdir2))
 
