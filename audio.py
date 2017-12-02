@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-'''
-By Dabi Ahn. andabi412@gmail.com.
-https://www.github.com/andabi
-'''
 
 from pydub import AudioSegment
 import os
@@ -34,29 +30,7 @@ def rewrite_mp3_to_wav(source_path, target_path):
     AudioSegment.from_mp3(source_path).export(target_path, format='wav')
 
 
-def split_path(path):
-    '''
-    'a/b/c.wav' => ('a/b', 'c', 'wav')
-    :param path: filepath = 'a/b/c.wav'
-    :return: basename, filename, and extension = ('a/b', 'c', 'wav')
-    '''
-    basepath, filename = os.path.split(path)
-    filename, extension = os.path.splitext(filename)
-    return basepath, filename, extension
-
-
 def spectrogram2wav(mag, n_fft, win_length, hop_length, num_iters, phase_angle=None, length=None):
-    '''
-
-    :param mag: [f, t]
-    :param n_fft: n_fft
-    :param win_length: window length
-    :param hop_length: hop length
-    :param num_iters: num of iteration when griffin-lim reconstruction
-    :param phase_angle: phase angle
-    :param length: length of wav
-    :return: 
-    '''
     assert (num_iters > 0)
     if phase_angle is None:
         phase_angle = np.pi * np.random.rand(*mag.shape)
@@ -77,3 +51,9 @@ def preemphasis(x, coeff=0.97):
 
 def inv_preemphasis(x, coeff=0.97):
     return signal.lfilter([1], [1, -coeff], x)
+
+
+def split(wav, top_db):
+    intervals = librosa.effects.split(wav, top_db=top_db)
+    wavs = map(lambda i: wav[i[0]: i[1]], intervals)
+    return wavs

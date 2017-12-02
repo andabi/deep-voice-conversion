@@ -9,7 +9,7 @@ import argparse
 from data_load import get_wav_batch, get_batch
 from models import Model
 import numpy as np
-from utils import spectrogram2wav, inv_preemphasis
+from audio import spectrogram2wav, inv_preemphasis
 from hparam import logdir_path
 import datetime
 import tensorflow as tf

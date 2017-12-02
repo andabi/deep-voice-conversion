@@ -108,6 +108,7 @@ class Model:
             # CBHG1: mel-scale
             pred_mel = cbhg(prenet_out, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2, self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training, scope="cbhg1")
             pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # log magnitude: (N, T, n_mels)
+            # pred_mel = prenet_out
 
             # CBHG2: linear-scale
             pred_spec = tf.layers.dense(pred_mel, self.hp.train2.hidden_units // 2)  # log magnitude: (N, T, n_mels)
@@ -119,6 +120,7 @@ class Model:
     def loss_net2(self):
         loss_spec = tf.reduce_mean(tf.squared_difference(self.pred_spec, self.y_spec))
         loss_mel = tf.reduce_mean(tf.squared_difference(self.pred_mel, self.y_mel))
+        # loss_mel = 0
         loss = loss_spec + loss_mel
         return loss
 

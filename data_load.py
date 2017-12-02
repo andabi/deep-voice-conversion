@@ -11,10 +11,24 @@ import tensorflow as tf
 from tensorflow.python.platform import tf_logging as logging
 
 from hparam import Hparam
-from utils import preemphasis, wav_random_crop
+from audio import preemphasis
 import numpy as np
 import librosa
 from hparam import data_path_base
+
+
+def wav_random_crop(wav, sr, duration):
+    assert (wav.ndim <= 2)
+
+    target_len = sr * duration
+    wav_len = wav.shape[-1]
+    start = np.random.choice(range(np.maximum(1, wav_len - target_len)), 1)[0]
+    end = start + target_len
+    if wav.ndim == 1:
+        wav = wav[start:end]
+    else:
+        wav = wav[:, start:end]
+    return wav
 
 
 def get_mfccs_and_phones(wav_file, sr, length, trim=False, random_crop=True):
