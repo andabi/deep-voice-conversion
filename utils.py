@@ -2,6 +2,7 @@
 #!/usr/bin/env python
 
 import os
+import glob
 
 
 def split_path(path):

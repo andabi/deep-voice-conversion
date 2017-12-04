@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-import os
-
 import tensorflow as tf
 
 from data_load import get_batch_queue, load_vocab
 from modules import prenet, cbhg
+import glob, os
+from utils import split_path
 
 
 class Model:
@@ -125,52 +125,55 @@ class Model:
         return loss
 
     @staticmethod
-    def load(sess, mode, logdir, logdir2=None):
-
-        def print_model_loaded(mode, logdir):
-            model_name = Model.get_model_name(logdir)
+    def load(sess, mode, logdir, logdir2=None, step=None):
+        def print_model_loaded(mode, logdir, step):
+            model_name = Model.get_model_name(logdir, step=step)
             print('Model loaded. mode: {}, model_name: {}'.format(mode, model_name))
 
         if mode in ['train1', 'test1']:
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-            if Model._load_variables(sess, logdir, var_list=var_list):
-                print_model_loaded(mode, logdir)
+            if Model._load_variables(sess, logdir, var_list=var_list, step=step):
+                print_model_loaded(mode, logdir, step)
 
         elif mode == 'train2':
             var_list1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-            if Model._load_variables(sess, logdir, var_list=var_list1):
-                print_model_loaded(mode, logdir)
+            if Model._load_variables(sess, logdir, var_list=var_list1, step=step):
+                print_model_loaded(mode, logdir, step)
 
             var_list2 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
-            if Model._load_variables(sess, logdir2, var_list=var_list2):
-                print_model_loaded(mode, logdir2)
+            if Model._load_variables(sess, logdir2, var_list=var_list2, step=step):
+                print_model_loaded(mode, logdir2, step)
 
         elif mode in ['test2', 'convert']:
-            if Model._load_variables(sess, logdir, var_list=None):  # Load all variables
-                print_model_loaded(mode, logdir)
+            if Model._load_variables(sess, logdir, var_list=None, step=step):  # Load all variables
+                print_model_loaded(mode, logdir, step)
 
     @staticmethod
-    def _load_variables(sess, logdir, var_list):
-        ckpt = tf.train.latest_checkpoint(logdir)
-        if ckpt:
+    def _load_variables(sess, logdir, var_list, step=None):
+        model_name = Model.get_model_name(logdir, step)
+        if model_name:
+            ckpt = os.path.join(logdir, model_name)
             tf.train.Saver(var_list=var_list).restore(sess, ckpt)
             return True
         else:
             return False
 
     @staticmethod
-    def get_model_name(logdir):
-        path = '{}/checkpoint'.format(logdir)
-        if os.path.exists(path):
-            ckpt_path = open(path, 'r').read().split('"')[1]
-            _, model_name = os.path.split(ckpt_path)
+    def get_model_name(logdir, step=None):
+        model_name = None
+        if step:
+            paths = glob.glob('{}/*step_{}.index*'.format(logdir, step))
+            if paths:
+                _, model_name, _ = split_path(paths[0])
         else:
-            model_name = None
+            ckpt = tf.train.latest_checkpoint(logdir)
+            if ckpt:
+                _, model_name = os.path.split(ckpt)
         return model_name
 
     @staticmethod
-    def get_epoch_and_global_step(logdir):
-        model_name = Model.get_model_name(logdir)
+    def get_epoch_and_global_step(logdir, step=None):
+        model_name = Model.get_model_name(logdir, step)
         if model_name:
             tokens = model_name.split('_')
             epoch, gs = int(tokens[1]), int(tokens[3])
@@ -180,7 +183,6 @@ class Model:
 
     @staticmethod
     def all_model_names(logdir):
-        import glob, os
         path = '{}/*.meta'.format(logdir)
         model_names = map(lambda f: os.path.basename(f).replace('.meta', ''), glob.glob(path))
         return model_names

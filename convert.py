@@ -16,7 +16,7 @@ import tensorflow as tf
 from hparam import Hparam
 
 
-def convert(logdir, writer, queue=False):
+def convert(logdir, step, writer, queue=False):
     hp = Hparam.get_global_hparam()
 
     # Load graph
@@ -33,12 +33,12 @@ def convert(logdir, writer, queue=False):
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
-        model.load(sess, 'convert', logdir=logdir)
+        model.load(sess, 'convert', logdir=logdir, step=step)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        epoch, gs = Model.get_epoch_and_global_step(logdir)
+        epoch, gs = Model.get_epoch_and_global_step(logdir, step=step)
 
         if queue:
             pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
@@ -93,6 +93,7 @@ def convert(logdir, writer, queue=False):
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case', type=str, help='experiment case name')
+    parser.add_argument('-step', type=int, help='checkpoint step to load', nargs='?', default=None)
     arguments = parser.parse_args()
     return arguments
 
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     s = datetime.datetime.now()
 
     writer = tf.summary.FileWriter(logdir)
-    convert(logdir=logdir, writer=writer)
+    convert(logdir=logdir, step=args.step, writer=writer)
     writer.close()
 
     e = datetime.datetime.now()
