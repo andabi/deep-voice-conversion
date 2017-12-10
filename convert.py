@@ -9,11 +9,12 @@ import argparse
 from data_load import get_wav_batch, get_batch
 from models import Model
 import numpy as np
-from audio import spectrogram2wav, inv_preemphasis
+from audio import spectrogram2wav, inv_preemphasis, db_to_amp
 from hparam import logdir_path
 import datetime
 import tensorflow as tf
 from hparam import Hparam
+from utils import denormalize_0_1
 
 
 def convert(logdir, step, writer, queue=False):
@@ -41,31 +42,37 @@ def convert(logdir, step, writer, queue=False):
         epoch, gs = Model.get_epoch_and_global_step(logdir, step=step)
 
         if queue:
-            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
+            pred_spec, y_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
         else:
             if hp.convert.one_full_wav:
                 mfcc, spec, mel = get_wav_batch(model.mode, model.batch_size)
             else:
                 mfcc, spec, mel = get_batch(model.mode, model.batch_size)
 
-            pred_log_specs, y_log_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+            pred_spec, y_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+
+        # De-quantization
+        # bins = np.linspace(0, 1, hp.default.quantize_db)
+        # y_spec = bins[y_spec]
 
         # Denormalizatoin
-        # pred_log_specs = hp.mean_log_spec + hp.std_log_spec * pred_log_specs
-        # y_log_spec = hp.mean_log_spec + hp.std_log_spec * y_log_spec
-        # pred_log_specs = hp.min_log_spec + (hp.max_log_spec - hp.min_log_spec) * pred_log_specs
-        # y_log_spec = hp.min_log_spec + (hp.max_log_spec - hp.min_log_spec) * y_log_spec
+        pred_spec = denormalize_0_1(pred_spec, hp.default.max_db, hp.default.min_db)
+        y_spec = denormalize_0_1(y_spec, hp.default.max_db, hp.default.min_db)
+
+        # Db to amp
+        pred_spec = db_to_amp(pred_spec)
+        y_spec = db_to_amp(y_spec)
 
         # Convert log of magnitude to magnitude
-        pred_specs, y_specs = np.e ** pred_log_specs, np.e ** y_log_spec
+        # pred_specs, y_specs = np.e ** pred_specs, np.e ** y_spec
 
         # Emphasize the magnitude
-        pred_specs = np.power(pred_specs, hp.convert.emphasis_magnitude)
-        y_specs = np.power(y_specs, hp.convert.emphasis_magnitude)
+        pred_spec = np.power(pred_spec, hp.convert.emphasis_magnitude)
+        y_spec = np.power(y_spec, hp.convert.emphasis_magnitude)
 
         # Spectrogram to waveform
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), pred_specs))
-        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), y_specs))
+        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), pred_spec))
+        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), y_spec))
 
         # Apply inverse pre-emphasis
         audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)

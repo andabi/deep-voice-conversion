@@ -53,6 +53,14 @@ def inv_preemphasis(x, coeff=0.97):
     return signal.lfilter([1], [1, -coeff], x)
 
 
+def amp_to_db(amp):
+    return librosa.amplitude_to_db(amp)
+
+
+def db_to_amp(db):
+    return librosa.db_to_amplitude(db)
+
+
 def split(wav, top_db):
     intervals = librosa.effects.split(wav, top_db=top_db)
     wavs = map(lambda i: wav[i[0]: i[1]], intervals)

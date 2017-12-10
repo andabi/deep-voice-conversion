@@ -11,6 +11,9 @@ default:
     n_iter: 60 # Number of inversion iterations
     n_mels: 80
     duration: 2
+    max_db: 35
+    min_db: -55
+    quantize_db: 101
 
     # model
     hidden_units: 256  # alias: E

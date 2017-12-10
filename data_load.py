@@ -2,7 +2,6 @@
 # /usr/bin/python2
 
 import glob
-import sys
 import threading
 from functools import wraps
 from random import sample
@@ -11,10 +10,11 @@ import tensorflow as tf
 from tensorflow.python.platform import tf_logging as logging
 
 from hparam import Hparam
-from audio import preemphasis
+from audio import preemphasis, amp_to_db
 import numpy as np
 import librosa
 from hparam import data_path_base
+from utils import normalize_0_1
 
 
 def wav_random_crop(wav, sr, duration):
@@ -119,19 +119,21 @@ def _get_mfcc_log_spec_and_log_mel_spec(wav, preemphasis_coeff, n_fft, win_lengt
     mel_basis = librosa.filters.mel(hp.default.sr, hp.default.n_fft, hp.default.n_mels)  # (n_mels, 1+n_fft//2)
     mel = np.dot(mel_basis, mag)  # (n_mels, t) # mel spectrogram
 
-    # Get mfccs
-    db = librosa.amplitude_to_db(mel)
-    mfccs = np.dot(librosa.filters.dct(hp.default.n_mfcc, db.shape[0]), db)
+    # Get mfccs, amp to db
+    mag_db = amp_to_db(mag)
+    mel_db = amp_to_db(mel)
+    mfccs = np.dot(librosa.filters.dct(hp.default.n_mfcc, mel_db.shape[0]), mel_db)
 
-    # Log
-    mag = np.log(mag + sys.float_info.epsilon)
-    mel = np.log(mel + sys.float_info.epsilon)
+    # Normalization (0 ~ 1)
+    mag_db = normalize_0_1(mag_db, hp.default.max_db, hp.default.min_db)
+    mel_db = normalize_0_1(mel_db, hp.default.max_db, hp.default.min_db)
 
-    # Normalization
-    # self.y_log_spec = (y_log_spec - hp.mean_log_spec) / hp.std_log_spec
-    # self.y_log_spec = (y_log_spec - hp.min_log_spec) / (hp.max_log_spec - hp.min_log_spec)
+    # Quantization
+    # bins = np.linspace(0, 1, hp.default.quantize_db)
+    # mag_db = np.digitize(mag_db, bins)
+    # mel_db = np.digitize(mel_db, bins)
 
-    return mfccs.T, mag.T, mel.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
+    return mfccs.T, mag_db.T, mel_db.T  # (t, n_mfccs), (t, 1+n_fft/2), (t, n_mels)
 
 
 # Adapted from the `sugartensor` code.
