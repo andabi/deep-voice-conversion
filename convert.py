@@ -17,7 +17,7 @@ from hparam import Hparam
 from utils import denormalize_0_1
 
 
-def convert(logdir, step, writer, queue=False):
+def convert(logdir, writer, queue=False, step=None):
     hp = Hparam.get_global_hparam()
 
     # Load graph
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     s = datetime.datetime.now()
 
     writer = tf.summary.FileWriter(logdir)
-    convert(logdir=logdir, step=args.step, writer=writer)
+    convert(logdir=logdir, writer=writer, step=args.step)
     writer.close()
 
     e = datetime.datetime.now()
