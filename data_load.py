@@ -197,7 +197,7 @@ def get_mfccs_and_phones_queue(wav_file):
     '''
     hp = Hparam.get_global_hparam()
 
-    mfccs, phns = get_mfccs_and_phones(wav_file, hp.default.sr, length=hp.default.hop_length+1)
+    mfccs, phns = get_mfccs_and_phones(wav_file, hp.default.sr, length=int(hp.default.duration / hp.default.frame_shift + 1))
     return mfccs, phns
 
 
@@ -285,7 +285,7 @@ def get_batch(mode, batch_size):
         target_wavs = sample(wav_files, batch_size)
 
         if mode in ('train1', 'test1'):
-            mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.default.sr, length=hp.default.hop_length+1), target_wavs)))
+            mfcc, ppg = map(_get_zero_padded, zip(*map(lambda w: get_mfccs_and_phones(w, hp.default.sr, length=int(hp.default.duration / hp.default.frame_shift + 1)), target_wavs)))
             return mfcc, ppg
         else:
             mfcc, spec, mel = map(_get_zero_padded, zip(*map(
