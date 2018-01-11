@@ -61,8 +61,11 @@ def train(logdir='logdir/default/train1', queue=True):
                     sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_ppgs: ppg})
 
             # Write checkpoint files at every epoch
-            summ, gs = sess.run([summ_op, global_step])
-
+            if queue:
+                summ, gs = sess.run([summ_op, global_step])
+            else:
+                summ, gs = sess.run([summ_op, global_step], feed_dict={model.x_mfcc: mfcc, model.y_ppgs: ppg})
+            
             if epoch % hp.Train1.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
 
