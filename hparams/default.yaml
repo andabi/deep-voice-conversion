@@ -25,7 +25,9 @@ default:
 
     # train
     batch_size: 32
----
+
+logdir_path: '/data/private/vc/logdir'
+
 train1:
     # path
     data_path: 'timit/TIMIT/TRAIN/*/*/*.wav'
@@ -46,7 +48,7 @@ train1:
 ---
 train2:
     # path
-    data_path: 'arctic/slt/*.wav'
+    data_path: '/data/private/vc/datasets/arctic/slt/*.wav'
 
     # model
     hidden_units: 512  # alias: E
@@ -69,18 +71,21 @@ train2:
 ---
 test1:
     # path
-    data_path: 'timit/TIMIT/TEST/*/*/*.wav'
+    data_path: '/data/private/vc/datasets/timit/TIMIT/TEST/*/*/*.wav'
 
     # test
     batch_size: 32
 ---
 test2:
+    # path
+    data_path: '/data/private/vc/datasets/arctic/slt/*.wav'
+
     # test
     batch_size: 32
 ---
 convert:
     # path
-    data_path: 'arctic/bdl/*.wav'
+    data_path: '/data/private/vc/datasets/arctic/bdl/*.wav'
 
     # convert
     one_full_wav: False

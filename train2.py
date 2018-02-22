@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 
-from hparam import logdir_path
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -11,14 +10,13 @@ from models import Model
 import convert, eval2
 from data_load import get_batch
 import argparse
-from hparam import Hparam
+from hparam import hparam as hp
 import math
 import os
 from utils import remove_all_files
 
 
 def train(logdir1, logdir2, queue=True):
-    hp = Hparam.get_global_hparam()
 
     model = Model(mode="train2", batch_size=hp.train2.batch_size, hp=hp, queue=queue)
 
@@ -116,10 +114,9 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    case1, case2 = args.case1, args.case2
-    logdir1 = '{}/{}/train1'.format(logdir_path, case1)
-    logdir2 = '{}/{}/train2'.format(logdir_path, case2)
-    hp = Hparam(case2).set_as_global_hparam()
+    hp.set_hparam_yaml(args.case2)
+    logdir1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
+    logdir2 = '{}/train2'.format(hp.logdir)
 
     if args.r:
         ckpt = '{}/checkpoint'.format(os.path.join(logdir2))
@@ -128,7 +125,7 @@ if __name__ == '__main__':
             remove_all_files(os.path.join(hp.logdir, 'events.out'))
             remove_all_files(os.path.join(hp.logdir, 'epoch_'))
 
-    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(case1, case2, logdir1, logdir2))
+    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir1, logdir2))
 
     train(logdir1=logdir1, logdir2=logdir2)
 

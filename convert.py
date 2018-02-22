@@ -10,15 +10,13 @@ from data_load import get_wav_batch, get_batch
 from models import Model
 import numpy as np
 from audio import spectrogram2wav, inv_preemphasis, db_to_amp
-from hparam import logdir_path
 import datetime
 import tensorflow as tf
-from hparam import Hparam
+from hparam import hparam as hp
 from utils import denormalize_0_1
 
 
 def convert(logdir, writer, queue=False, step=None):
-    hp = Hparam.get_global_hparam()
 
     # Load graph
     model = Model(mode="convert", batch_size=hp.convert.batch_size, hp=hp, queue=queue)
@@ -107,11 +105,10 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    case = args.case
-    logdir = '{}/{}/train2'.format(logdir_path, case)
-    Hparam(case).set_as_global_hparam()
+    hp.set_hparam_yaml(args.case)
+    logdir = '{}/train2'.format(hp.logdir)
 
-    print('case: {}, logdir: {}'.format(case, logdir))
+    print('case: {}, logdir: {}'.format(args.case, logdir))
 
     s = datetime.datetime.now()
 

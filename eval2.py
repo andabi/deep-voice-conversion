@@ -7,12 +7,10 @@ import tensorflow as tf
 from data_load import get_batch
 from models import Model
 import argparse
-from hparam import logdir_path
-from hparam import Hparam
+from hparam import hparam as hp
 
 
 def eval(logdir, writer, queue=True):
-    hp = Hparam.get_global_hparam()
 
     # Load graph
     model = Model(mode="test2", batch_size=hp.test2.batch_size, hp=hp, queue=queue)
@@ -63,9 +61,8 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    case = args.case
-    logdir = '{}/{}/train2'.format(logdir_path, case)
-    Hparam(case).set_as_global_hparam()
+    hp.set_hparam_yaml(args.case)
+    logdir = '{}/train2'.format(hp.logdir)
 
     writer = tf.summary.FileWriter(logdir)
     eval(logdir=logdir, writer=writer)

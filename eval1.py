@@ -6,15 +6,12 @@ from __future__ import print_function
 import argparse
 
 import tensorflow as tf
-from hparam import Hparam
 from data_load import get_batch
-from hparam import logdir_path
+from hparam import hparam as hp
 from models import Model
 
 
 def eval(logdir, writer, queue=False):
-    hp = Hparam.get_global_hparam()
-
     # Load graph
     model = Model(mode="test1", batch_size=hp.test1.batch_size, hp=hp, queue=queue)
 
@@ -70,10 +67,8 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    case = args.case
-    logdir = '{}/{}/train1'.format(logdir_path, case)
-    Hparam(case).set_as_global_hparam()
-
+    hp.set_hparam_yaml(args.case)
+    logdir = '{}/train1'.format(hp.logdir)
     writer = tf.summary.FileWriter(logdir)
     eval(logdir=logdir, writer=writer)
     writer.close()

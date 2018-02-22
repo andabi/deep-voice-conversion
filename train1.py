@@ -2,7 +2,6 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-from hparam import logdir_path
 from tqdm import tqdm
 
 from modules import *
@@ -10,11 +9,10 @@ from models import Model
 import eval1
 from data_load import get_batch
 import argparse
-from hparam import Hparam
+from hparam import hparam as hp
 
 
 def train(logdir, queue=True):
-    hp = Hparam.get_global_hparam()
 
     model = Model(mode="train1", batch_size=hp.train1.batch_size, hp=hp, queue=queue)
 
@@ -88,9 +86,8 @@ def get_arguments():
 
 if __name__ == '__main__':
     args = get_arguments()
-    case = args.case
-    logdir = '{}/{}/train1'.format(logdir_path, case)
-    Hparam(case).set_as_global_hparam()
+    hp.set_hparam_yaml(args.case)
+    logdir = '{}/train1'.format(hp.logdir)
 
     train(logdir=logdir)
     print("Done")
