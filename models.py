@@ -3,7 +3,7 @@
 
 import tensorflow as tf
 
-from data_load import get_batch_queue, load_vocab
+from data_load import get_batch_queue, phns
 from modules import prenet, cbhg
 import glob, os
 from utils import split_path
@@ -18,7 +18,7 @@ class Model:
         self.is_training = self.get_is_training(mode)
 
         # Input
-        self.x_mfcc, self.y_ppgs, self.y_spec, self.y_mel, self.num_batch = self.get_input(mode, batch_size, queue)
+        self.x_mfcc, self.y_ppg, self.y_spec, self.y_mel, self.num_batch = self.get_input(mode, batch_size, queue)
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
@@ -61,9 +61,6 @@ class Model:
 
     def _net1(self):
         with tf.variable_scope('net1'):
-            # Load vocabulary
-            phn2idx, idx2phn = load_vocab()
-
             # Pre-net
             prenet_out = prenet(self.x_mfcc,
                                 num_units=[self.hp.train1.hidden_units, self.hp.train1.hidden_units // 2],
@@ -74,7 +71,7 @@ class Model:
             out = cbhg(prenet_out, self.hp.train1.num_banks, self.hp.train1.hidden_units // 2, self.hp.train1.num_highway_blocks, self.hp.train1.norm_type, self.is_training)
 
             # Final linear projection
-            logits = tf.layers.dense(out, len(phn2idx))  # (N, T, V)
+            logits = tf.layers.dense(out, len(phns))  # (N, T, V)
             ppgs = tf.nn.softmax(logits / self.hp.train1.t)  # (N, T, V)
             preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
 
@@ -82,14 +79,14 @@ class Model:
 
     def loss_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / self.hp.train1.t, labels=self.y_ppgs)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / self.hp.train1.t, labels=self.y_ppg)
         loss *= istarget
         loss = tf.reduce_mean(loss)
         return loss
 
     def acc_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.pred_ppg, self.y_ppgs)) * istarget)
+        num_hits = tf.reduce_sum(tf.to_float(tf.equal(self.pred_ppg, self.y_ppg)) * istarget)
         num_targets = tf.reduce_sum(istarget)
         acc = num_hits / num_targets
         return acc

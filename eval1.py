@@ -6,9 +6,11 @@ from __future__ import print_function
 import argparse
 
 import tensorflow as tf
-from data_load import get_batch
+from data_load import get_batch, phns, load_vocab
 from hparam import hparam as hp
 from models import Model
+from utils import plot_confusion_matrix
+import numpy as np
 
 
 def eval(logdir, writer, queue=False):
@@ -21,8 +23,14 @@ def eval(logdir, writer, queue=False):
     # Loss
     loss_op = model.loss_net1()
 
+    # confusion matrix
+    y_ppg_1d = tf.reshape(model.y_ppg, shape=(tf.size(model.y_ppg),))
+    pred_ppg_1d = tf.reshape(model.pred_ppg, shape=(tf.size(model.pred_ppg),))
+
     # Summary
-    summ_op = summaries(acc_op, loss_op)
+    tf.summary.scalar('net1/eval/acc', acc_op)
+    tf.summary.scalar('net1/eval/loss', loss_op)
+    summ_op = tf.summary.merge_all()
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,
@@ -37,12 +45,20 @@ def eval(logdir, writer, queue=False):
         model.load(sess, 'train1', logdir=logdir)
 
         if queue:
-            summ, acc, loss = sess.run([summ_op, acc_op, loss_op])
+            summ, acc, loss, y_ppg_1d, pred_ppg_1d = sess.run([summ_op, acc_op, loss_op, y_ppg_1d, pred_ppg_1d])
         else:
             mfcc, ppg = get_batch(model.mode, model.batch_size)
-            summ, acc, loss = sess.run([summ_op, acc_op, loss_op], feed_dict={model.x_mfcc: mfcc, model.y_ppgs: ppg})
+            summ, acc, loss, y_ppg_1d, pred_ppg_1d = sess.run([summ_op, acc_op, loss_op, y_ppg_1d, pred_ppg_1d],
+                                                              feed_dict={model.x_mfcc: mfcc, model.y_ppg: ppg})
+
+        # plot confusion matrix
+        _, idx2phn = load_vocab()
+        y_ppg_1d = [idx2phn[i] for i in y_ppg_1d]
+        pred_ppg_1d = [idx2phn[i] for i in pred_ppg_1d]
+        cm_summ = plot_confusion_matrix(y_ppg_1d, pred_ppg_1d, phns)
 
         writer.add_summary(summ)
+        writer.add_summary(cm_summ)
 
         print("acc:", acc)
         print("loss:", loss)
@@ -50,12 +66,6 @@ def eval(logdir, writer, queue=False):
 
         coord.request_stop()
         coord.join(threads)
-
-
-def summaries(acc, loss):
-    tf.summary.scalar('net1/eval/acc', acc)
-    tf.summary.scalar('net1/eval/loss', loss)
-    return tf.summary.merge_all()
 
 
 def get_arguments():

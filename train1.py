@@ -59,7 +59,7 @@ def train(logdir, queue=True):
                     sess.run(train_op)
                 else:
                     mfcc, ppg = get_batch(model.mode, model.batch_size)
-                    sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_ppgs: ppg})
+                    sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_ppg: ppg})
 
             # Write checkpoint files at every epoch
             summ, gs = sess.run([summ_op, global_step])
