@@ -6,11 +6,11 @@ from __future__ import print_function
 import argparse
 
 import tensorflow as tf
+
 from data_load import get_batch, phns, load_vocab
 from hparam import hparam as hp
 from models import Model
 from utils import plot_confusion_matrix
-import numpy as np
 
 
 def eval(logdir, writer, queue=False):

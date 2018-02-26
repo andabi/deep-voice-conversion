@@ -13,7 +13,7 @@ default:
     duration: 2
     max_db: 35
     min_db: -55
-    quantize_db: 101
+#    quantize_db: 101
 
     # model
     hidden_units: 256  # alias: E
