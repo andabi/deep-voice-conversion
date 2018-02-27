@@ -57,6 +57,7 @@ train2:
     norm_type: 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t: 1.0  # temperature
     dropout_rate: 0.2
+    n_mixtures: 5
 
     # train
     batch_size: 32

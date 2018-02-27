@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 import tensorflow as tf
 
@@ -7,7 +7,7 @@ from data_load import get_batch_queue, phns
 from modules import prenet, cbhg
 import glob, os
 from utils import split_path
-
+from tensorflow.contrib import distributions
 
 class Model:
     def __init__(self, mode, batch_size, hp, queue=True):
@@ -22,10 +22,10 @@ class Model:
 
         # Networks
         self.net_template = tf.make_template('net', self._net2)
-        self.ppgs, self.pred_ppg, self.logits_ppg, self.pred_spec, self.pred_mel = self.net_template()
+        self.ppgs, self.pred_ppg, self.logits_ppg, self.pred_spec_mu, self.pred_spec_phi = self.net_template()
 
     def __call__(self):
-        return self.pred_spec
+        return self.pred_spec_mu
 
     def get_input(self, mode, batch_size, queue):
         '''
@@ -48,7 +48,7 @@ class Model:
         if queue:
             if mode in ("train1", "test1"):  # x: mfccs (N, T, n_mfccs), y: Phones (N, T)
                 x_mfcc, y_ppgs, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
-            elif mode in ("train2", "test2", "convert"): # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
+            elif mode in ("train2", "test2", "convert"):  # x: mfccs (N, T, n_mfccs), y: spectrogram (N, T, 1+n_fft//2)
                 x_mfcc, y_spec, y_mel, num_batch = get_batch_queue(mode=mode, batch_size=batch_size)
         return x_mfcc, y_ppgs, y_spec, y_mel, num_batch
 
@@ -68,7 +68,8 @@ class Model:
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG
-            out = cbhg(prenet_out, self.hp.train1.num_banks, self.hp.train1.hidden_units // 2, self.hp.train1.num_highway_blocks, self.hp.train1.norm_type, self.is_training)
+            out = cbhg(prenet_out, self.hp.train1.num_banks, self.hp.train1.hidden_units // 2,
+                       self.hp.train1.num_highway_blocks, self.hp.train1.norm_type, self.is_training)
 
             # Final linear projection
             logits = tf.layers.dense(out, len(phns))  # (N, T, V)
@@ -79,7 +80,8 @@ class Model:
 
     def loss_net1(self):
         istarget = tf.sign(tf.abs(tf.reduce_sum(self.x_mfcc, -1)))  # indicator: (N, T)
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / self.hp.train1.t, labels=self.y_ppg)
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits_ppg / self.hp.train1.t,
+                                                              labels=self.y_ppg)
         loss *= istarget
         loss = tf.reduce_mean(loss)
         return loss
@@ -103,22 +105,35 @@ class Model:
                                 is_training=self.is_training)  # (N, T, E/2)
 
             # CBHG1: mel-scale
-            pred_mel = cbhg(prenet_out, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2, self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training, scope="cbhg1")
-            pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # log magnitude: (N, T, n_mels)
-            # pred_mel = prenet_out
+            # pred_mel = cbhg(prenet_out, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2,
+            #                 self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training,
+            #                 scope="cbhg_mel")
+            # pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # (N, T, n_mels)
+            pred_mel = prenet_out
 
             # CBHG2: linear-scale
-            pred_spec = tf.layers.dense(pred_mel, self.hp.train2.hidden_units // 2)  # log magnitude: (N, T, n_mels)
-            pred_spec = cbhg(pred_spec, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2, self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training, scope="cbhg2")
-            pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # log magnitude: (N, T, 1+hp.n_fft//2)
+            pred_spec = tf.layers.dense(pred_mel, self.hp.train2.hidden_units // 2)  # (N, T, n_mels)
+            pred_spec = cbhg(pred_spec, self.hp.train2.num_banks, self.hp.train2.hidden_units // 2,
+                             self.hp.train2.num_highway_blocks, self.hp.train2.norm_type, self.is_training,
+                             scope="cbhg_linear")
+            pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # (N, T, 1+hp.n_fft//2)
+            pred_spec = tf.expand_dims(pred_spec, axis=-1)
+            pred_spec_mu = tf.layers.dense(pred_spec, self.hp.train2.n_mixtures)  # (N, T, 1+hp.n_fft//2, n_mixtures)
+            pred_spec_phi = tf.nn.softmax(tf.layers.dense(pred_spec, self.hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
 
-        return ppgs, preds_ppg, logits_ppg, pred_spec, pred_mel
+        return ppgs, preds_ppg, logits_ppg, pred_spec_mu, pred_spec_phi
 
     def loss_net2(self):
-        loss_spec = tf.reduce_mean(tf.squared_difference(self.pred_spec, self.y_spec))
-        loss_mel = tf.reduce_mean(tf.squared_difference(self.pred_mel, self.y_mel))
-        # loss_mel = 0
-        loss = loss_spec + loss_mel
+        # negative log likelihood
+        normal_dists = []
+        for i in range(self.hp.train2.n_mixtures):
+            mu = self.pred_spec_mu[..., i]
+            normal_dist = distributions.Normal(mu, tf.ones_like(mu))
+            normal_dists.append(normal_dist)
+        cat = distributions.Categorical(probs=self.pred_spec_phi)
+        mixture_dist = distributions.Mixture(cat=cat, components=normal_dists)
+        loss = -1.0 * mixture_dist.log_prob(value=self.y_spec)
+        loss = tf.reduce_mean(loss)
         return loss
 
     @staticmethod
