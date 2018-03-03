@@ -13,7 +13,6 @@ default:
     duration: 2
     max_db: 35
     min_db: -55
-#    quantize_db: 101
 
     # model
     hidden_units: 256  # alias: E
@@ -33,8 +32,8 @@ train1:
     data_path: '/data/private/vc/datasets/timit/TIMIT/TRAIN/*/*/*.wav'
 
     # model
-    hidden_units: 256  # alias: E
-    num_banks: 16
+    hidden_units: 128  # alias: E
+    num_banks: 8
     num_highway_blocks: 4
     norm_type: 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t: 1.0  # temperature
@@ -44,7 +43,9 @@ train1:
     batch_size: 32
     lr: 0.0003
     num_epochs: 1000
+    steps_per_epoch: 100
     save_per_epoch: 2
+    num_gpu: 2
 ---
 train2:
     # path
@@ -67,8 +68,11 @@ train2:
     clip_value_max: 3.
     clip_value_min: -3.
     clip_norm: 100
+    mol_step: 0.001
     num_epochs: 10000
+    steps_per_epoch: 100
     save_per_epoch: 50
+    num_gpu: 4
 ---
 test1:
     # path

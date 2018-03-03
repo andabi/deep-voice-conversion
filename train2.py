@@ -3,22 +3,22 @@
 
 from __future__ import print_function
 
-from tqdm import tqdm
-
-import tensorflow as tf
-from models import Model
-import convert, eval2
-from data_load import get_batch
 import argparse
-from hparam import hparam as hp
 import math
 import os
+
+import tensorflow as tf
+from tqdm import tqdm
+
+from data_load import get_batch
+from hparam import hparam as hp
+from models import Model
 from utils import remove_all_files
 
 
 def train(logdir1, logdir2, queue=True):
 
-    model = Model(mode="train2", batch_size=hp.train2.batch_size, hp=hp, queue=queue)
+    model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()
@@ -44,6 +44,9 @@ def train(logdir1, logdir2, queue=True):
     #     tf.summary.histogram(v.name, v)
     tf.summary.scalar('net2/train/loss', loss_op)
     tf.summary.scalar('net2/train/lr', lr)
+    tf.summary.histogram('net2/train/mu', model.pred_spec_mu)
+    tf.summary.histogram('net2/train/phi', model.pred_spec_phi)
+    tf.summary.scalar('net2/prob_min', model.prob_min)
     summ_op = tf.summary.merge_all()
 
     session_conf = tf.ConfigProto(
@@ -84,12 +87,12 @@ def train(logdir1, logdir2, queue=True):
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
 
                 # Eval at every n epochs
-                with tf.Graph().as_default():
-                    eval2.eval(logdir2, queue=False, writer=writer)
+                # with tf.Graph().as_default():
+                #     eval2.eval(logdir2, queue=False, writer=writer)
 
                 # Convert at every n epochs
-                with tf.Graph().as_default():
-                    convert.convert(logdir2, queue=False, writer=writer)
+                # with tf.Graph().as_default():
+                #     convert.convert(logdir2, queue=False, writer=writer)
 
             writer.add_summary(summ, global_step=gs)
 

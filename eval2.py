@@ -13,7 +13,7 @@ from hparam import hparam as hp
 def eval(logdir, writer, queue=True):
 
     # Load graph
-    model = Model(mode="test2", batch_size=hp.test2.batch_size, hp=hp, queue=queue)
+    model = Model(mode="test2", batch_size=hp.test2.batch_size, queue=queue)
 
     # Loss
     loss_op = model.loss_net2()

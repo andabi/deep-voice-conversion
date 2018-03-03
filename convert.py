@@ -19,7 +19,7 @@ from utils import denormalize_0_1
 def convert(logdir, writer, queue=False, step=None):
 
     # Load graph
-    model = Model(mode="convert", batch_size=hp.convert.batch_size, hp=hp, queue=queue)
+    model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
 
     session_conf = tf.ConfigProto(
         allow_soft_placement=True,

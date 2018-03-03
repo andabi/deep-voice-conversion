@@ -2,92 +2,73 @@
 # /usr/bin/python2
 
 from __future__ import print_function
-from tqdm import tqdm
 
-from modules import *
-from models import Model
-import eval1
-from data_load import get_batch
 import argparse
+import multiprocessing
+import os
+
+from tensorpack.callbacks.saver import ModelSaver
+from tensorpack.tfutils.sessinit import SaverRestore
+from tensorpack.train.interface import TrainConfig
+from tensorpack.train.interface import launch_train_with_config
+from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
+from tensorpack.utils import logger
+from tensorpack.input_source.input_source import QueueInput
+from data_load import Net1DataFlow
 from hparam import hparam as hp
+from models import Net1
+import tensorflow as tf
 
+def train(args, logdir):
+    # model
+    model = Net1()
 
-def train(logdir, queue=True):
+    # dataflow
+    df = Net1DataFlow(hp.train1.data_path, hp.train1.batch_size)
 
-    model = Model(mode="train1", batch_size=hp.train1.batch_size, hp=hp, queue=queue)
-
-    # Loss
-    loss_op = model.loss_net1()
-
-    # Accuracy
-    acc_op = model.acc_net1()
-
-    # Training Scheme
-    epoch, gs = Model.get_epoch_and_global_step(logdir)
-    global_step = tf.Variable(gs, name='global_step', trainable=False)
-
-    optimizer = tf.train.AdamOptimizer(learning_rate=hp.train1.lr)
-    with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-        var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
-        train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
-
-    # Summary
-    # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1'):
-    #     tf.summary.histogram(v.name, v)
-    tf.summary.scalar('net1/train/loss', loss_op)
-    tf.summary.scalar('net1/train/acc', acc_op)
-    summ_op = tf.summary.merge_all()
+    # set logger for event and model saver
+    logger.set_logger_dir(logdir)
 
     session_conf = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-        ),
+        ),)
+
+    train_conf = TrainConfig(
+        model=model,
+        data=QueueInput(df(n_prefetch=1000, n_thread=4)),
+        callbacks=[
+            ModelSaver(checkpoint_dir=logdir),
+            # TODO EvalCallback()
+        ],
+        max_epoch=hp.train1.num_epochs,
+        steps_per_epoch=hp.train1.steps_per_epoch,
+        # session_config=session_conf
     )
-    # Training
-    with tf.Session(config=session_conf) as sess:
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load(sess, 'train1', logdir=logdir)
+    ckpt = args.ckpt if args.ckpt else tf.train.latest_checkpoint(logdir)
+    if ckpt and not args.r:
+        train_conf.session_init = SaverRestore(ckpt)
 
-        writer = tf.summary.FileWriter(logdir)
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
+    if args.gpu:
+        os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+        train_conf.nr_tower = len(args.gpu.split(','))
 
-        for epoch in range(epoch + 1, hp.train1.num_epochs + 1):
-            for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
-                if queue:
-                    sess.run(train_op)
-                else:
-                    mfcc, ppg = get_batch(model.mode, model.batch_size)
-                    sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_ppg: ppg})
+    trainer = SyncMultiGPUTrainerReplicated(hp.train1.num_gpu)
 
-            # Write checkpoint files at every epoch
-            summ, gs = sess.run([summ_op, global_step])
-
-            if epoch % hp.train1.save_per_epoch == 0:
-                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir, epoch, gs))
-
-            # Write eval accuracy at every epoch
-            with tf.Graph().as_default():
-                eval1.eval(logdir=logdir, queue=False, writer=writer)
-
-            writer.add_summary(summ, global_step=gs)
-
-        writer.close()
-        coord.request_stop()
-        coord.join(threads)
+    launch_train_with_config(train_conf, trainer=trainer)
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case', type=str, help='experiment case name')
+    parser.add_argument('-ckpt', help='checkpoint to load model.')
+    parser.add_argument('-gpu', help='comma separated list of GPU(s) to use.')
+    parser.add_argument('-r', action='store_true', help='start training from the beginning.')
     arguments = parser.parse_args()
     return arguments
 
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case)
-    logdir = '{}/train1'.format(hp.logdir)
-
-    train(logdir=logdir)
+    train(args, logdir='{}/train1'.format(hp.logdir))
     print("Done")

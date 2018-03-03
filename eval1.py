@@ -15,7 +15,7 @@ from utils import plot_confusion_matrix
 
 def eval(logdir, writer, queue=False):
     # Load graph
-    model = Model(mode="test1", batch_size=hp.test1.batch_size, hp=hp, queue=queue)
+    model = Model(mode="test1", batch_size=hp.test1.batch_size, queue=queue)
 
     # Accuracy
     acc_op = model.acc_net1()
