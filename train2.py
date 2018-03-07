@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#/usr/bin/python2
+# /usr/bin/python2
 
 from __future__ import print_function
 
@@ -8,97 +8,108 @@ import math
 import os
 
 import tensorflow as tf
-from tqdm import tqdm
+from tensorpack.callbacks.saver import ModelSaver
+from tensorpack.graph_builder.utils import LeastLoadedDeviceSetter
+from tensorpack.graph_builder.distributed import DataParallelBuilder
+from tensorpack.input_source.input_source import QueueInput
+from tensorpack.input_source.input_source import StagingInput
+from tensorpack.tfutils.sessinit import SaverRestore
+from tensorpack.tfutils.tower import TowerFuncWrapper
+from tensorpack.train.interface import TrainConfig
+from tensorpack.train.interface import launch_train_with_config
+from tensorpack.train.tower import TowerTrainer
+from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
+from tensorpack.utils import logger
 
-from data_load import get_batch
+from data_load import Net2DataFlow
 from hparam import hparam as hp
-from models import Model
-from utils import remove_all_files
+from models import Net2
+from tensorpack.tfutils.sessinit import ChainInit
 
+def train(args, logdir1, logdir2):
+    # model
+    model = Net2()
 
-def train(logdir1, logdir2, queue=True):
+    # dataflow
+    df = Net2DataFlow(hp.train2.data_path, hp.train2.batch_size)
 
-    model = Model(mode="train2", batch_size=hp.train2.batch_size, queue=queue)
+    # set logger for event and model saver
+    logger.set_logger_dir(logdir2)
 
-    # Loss
-    loss_op = model.loss_net2()
+    # session_conf = tf.ConfigProto(
+    #     gpu_options=tf.GPUOptions(
+    #         allow_growth=True,
+    #         per_process_gpu_memory_fraction=0.6,
+    #     ),
+    # )
 
-    # Training Scheme
-    epoch, gs = Model.get_epoch_and_global_step(logdir2)
-    global_step = tf.Variable(gs, name='global_step', trainable=False)
+    input = QueueInput(df(n_prefetch=1000, n_thread=4))
 
-    lr = tf.placeholder(tf.float32, shape=[])
-    optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-    with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-        var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2')
+    session_inits = []
+    ckpt2 = args.ckpt if args.ckpt else tf.train.latest_checkpoint(logdir2)
+    if ckpt2:
+        session_inits.append(SaverRestore(ckpt2))
+    ckpt1 = tf.train.latest_checkpoint(logdir1)
+    if ckpt1:
+        session_inits.append(SaverRestore(ckpt1))
 
-        # Gradient clipping to prevent loss explosion
-        gvs = optimizer.compute_gradients(loss_op, var_list=var_list)
-        gvs = [(tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max), var) for grad, var in gvs]
-        gvs = [(tf.clip_by_norm(grad, hp.train2.clip_norm), var) for grad, var in gvs]
+    # if args.gpu:
+    #     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    #     train_conf.nr_tower = len(args.gpu.split(','))
 
-        train_op = optimizer.apply_gradients(gvs, global_step=global_step)
+    trainer = MultiGPUNet2Trainer(hp.train2.num_gpu, model=model, input=input)
 
-    # Summary
-    # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net2'):
-    #     tf.summary.histogram(v.name, v)
-    tf.summary.scalar('net2/train/loss', loss_op)
-    tf.summary.scalar('net2/train/lr', lr)
-    tf.summary.histogram('net2/train/mu', model.pred_spec_mu)
-    tf.summary.histogram('net2/train/phi', model.pred_spec_phi)
-    tf.summary.scalar('net2/prob_min', model.prob_min)
-    summ_op = tf.summary.merge_all()
-
-    session_conf = tf.ConfigProto(
-        gpu_options=tf.GPUOptions(
-            allow_growth=True,
-            per_process_gpu_memory_fraction=0.6,
-        ),
+    trainer.train_with_defaults(
+        callbacks=[
+            # TODO save on prefix net2
+            ModelSaver(checkpoint_dir=logdir2),
+            # TODO EvalCallback()
+        ],
+        max_epoch=hp.train2.num_epochs,
+        steps_per_epoch=hp.train2.steps_per_epoch,
+        session_init=ChainInit(session_inits)
     )
-    # Training
-    with tf.Session(config=session_conf) as sess:
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load(sess, mode='train2', logdir=logdir1, logdir2=logdir2)
 
-        writer = tf.summary.FileWriter(logdir2)
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
 
-        for epoch in range(epoch + 1, hp.train2.num_epochs + 1):
-            for _ in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
-                gs = sess.run(global_step)
+class MultiGPUNet2Trainer(TowerTrainer):
+    def __init__(self, nr_gpu, input, model):
+        super(MultiGPUNet2Trainer, self).__init__()
+        assert nr_gpu > 0
+        raw_devices = ['/gpu:{}'.format(k) for k in range(nr_gpu)]
 
-                # Cyclic learning rate
-                feed_dict = {lr: get_cyclic_lr(gs)}
-                if queue:
-                    sess.run(train_op, feed_dict=feed_dict)
-                else:
-                    mfcc, spec, mel = get_batch(model.mode, model.batch_size)
-                    feed_dict.update({model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
-                    sess.run(train_op, feed_dict=feed_dict)
+        # Setup input
+        input = StagingInput(input, raw_devices)
+        cbs = input.setup(model.get_inputs_desc())
+        for cb in cbs:
+            self.register_callback(cb)
 
-            # Write checkpoint files at every epoch
-            gs = sess.run(global_step)
-            feed_dict = {lr: get_cyclic_lr(gs)}
-            summ = sess.run(summ_op, feed_dict=feed_dict)
+        # Build the graph with multi-gpu replication
+        def get_cost(*inputs):
+            model.build_graph(*inputs)
+            return model.cost
 
-            if epoch % hp.train2.save_per_epoch == 0:
-                tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
+        self.tower_func = TowerFuncWrapper(get_cost, model.get_inputs_desc())
+        devices = [LeastLoadedDeviceSetter(d, raw_devices) for d in raw_devices]
+        cost_list = DataParallelBuilder.build_on_towers(
+            list(range(nr_gpu)),
+            lambda: self.tower_func(*input.get_input_tensors()),
+            devices)
+        # Simply average the cost here. It might be faster to average the gradients
+        loss_op = tf.add_n([x for x in cost_list]) * (1.0 / nr_gpu)
 
-                # Eval at every n epochs
-                # with tf.Graph().as_default():
-                #     eval2.eval(logdir2, queue=False, writer=writer)
+        # Define optimizer
+        lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
+        optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+            var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net2')
 
-                # Convert at every n epochs
-                # with tf.Graph().as_default():
-                #     convert.convert(logdir2, queue=False, writer=writer)
+            # Gradient clipping to prevent loss explosion
+            gvs = optimizer.compute_gradients(loss_op, var_list=var_list)
+            gvs = [(tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max), var) for grad, var in
+                   gvs]
+            gvs = [(tf.clip_by_norm(grad, hp.train2.clip_norm), var) for grad, var in gvs]
 
-            writer.add_summary(summ, global_step=gs)
-
-        writer.close()
-        coord.request_stop()
-        coord.join(threads)
+        self.train_op = optimizer.apply_gradients(gvs)
 
 
 def get_cyclic_lr(step):
@@ -111,25 +122,20 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('case1', type=str, help='experiment case name of train1')
     parser.add_argument('case2', type=str, help='experiment case name of train2')
-    parser.add_argument('-r', action='store_true', help='start training from the beginning.')
+    parser.add_argument('-ckpt', help='checkpoint to load model.')
+    parser.add_argument('-gpu', help='comma separated list of GPU(s) to use.')
     arguments = parser.parse_args()
     return arguments
+
 
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
-    logdir1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
-    logdir2 = '{}/train2'.format(hp.logdir)
+    logdir_train1 = '{}/train1'.format(hp.logdir)
+    logdir_train2 = '{}/train2'.format(hp.logdir)
 
-    if args.r:
-        ckpt = '{}/checkpoint'.format(os.path.join(logdir2))
-        if os.path.exists(ckpt):
-            os.remove(ckpt)
-            remove_all_files(os.path.join(hp.logdir, 'events.out'))
-            remove_all_files(os.path.join(hp.logdir, 'epoch_'))
+    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
 
-    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir1, logdir2))
-
-    train(logdir1=logdir1, logdir2=logdir2)
+    train(args, logdir1=logdir_train1, logdir2=logdir_train2)
 
     print("Done")

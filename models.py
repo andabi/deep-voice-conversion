@@ -22,9 +22,8 @@ class Net1(ModelDesc):
 
     def _build_graph(self, inputs):
         self.x_mfccs, self.y_ppgs = inputs
-        self.is_training = get_current_tower_context().is_training
         with tf.variable_scope('net1'):
-            self.ppgs, self.preds, self.logits = self.network(self.x_mfccs)
+            self.ppgs, self.preds, self.logits = self.network(self.x_mfccs, get_current_tower_context().is_training)
         self.cost = self.loss()
 
         # summaries
@@ -36,16 +35,16 @@ class Net1(ModelDesc):
         return tf.train.AdamOptimizer(lr)
 
     @auto_reuse_variable_scope
-    def network(self, x_mfcc):
+    def network(self, x_mfcc, is_training):
         # Pre-net
         prenet_out = prenet(x_mfcc,
                             num_units=[hp.train1.hidden_units, hp.train1.hidden_units // 2],
                             dropout_rate=hp.train1.dropout_rate,
-                            is_training=self.is_training)  # (N, T, E/2)
+                            is_training=is_training)  # (N, T, E/2)
 
         # CBHG
         out = cbhg(prenet_out, hp.train1.num_banks, hp.train1.hidden_units // 2,
-                   hp.train1.num_highway_blocks, hp.train1.norm_type, self.is_training)
+                   hp.train1.num_highway_blocks, hp.train1.norm_type, is_training)
 
         # Final linear projection
         logits = tf.layers.dense(out, len(phns))  # (N, T, V)
@@ -69,6 +68,7 @@ class Net1(ModelDesc):
         acc = num_hits / num_targets
         return acc
 
+
 class Net2(ModelDesc):
 
     def __init__(self):
@@ -76,37 +76,57 @@ class Net2(ModelDesc):
 
     def _get_inputs(self):
         return [InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_mfcc), 'x_mfccs'),
-                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_mels), 'y_mel'),
-                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_fft//2 + 1), 'y_spec')]
+                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_fft // 2 + 1), 'y_spec'),
+                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_mels), 'y_mel'),]
 
     def _build_graph(self, inputs):
-        self.x_mfcc, self.y_mel, self.y_spec = inputs
+        self.x_mfcc, self.y_spec, self.y_mel = inputs
+
+        is_training = get_current_tower_context().is_training
 
         # build net1
         with tf.variable_scope('net1'):
-            self.ppgs, _, _ = self.net1.network(self.x_mfcc)
+            self.ppgs, _, _ = self.net1.network(self.x_mfcc, is_training)
 
         # build net2
         with tf.variable_scope('net2'):
-            self.pred_spec_mu, self.pred_spec_phi = self.network(self.ppgs)
+            self.pred_spec_mu, self.pred_spec_phi = self.network(self.ppgs, is_training)
 
         self.cost = self.loss()
 
-    def _get_optimizer(self):
-        lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
-        return tf.train.AdamOptimizer(lr)
+        # summaries
+        tf.summary.scalar('net2/train/loss', self.cost)
+        # tf.summary.scalar('net2/train/lr', lr)
+        tf.summary.histogram('net2/train/mu', self.pred_spec_mu)
+        tf.summary.histogram('net2/train/phi', self.pred_spec_phi)
+        # TODO remove
+        tf.summary.scalar('net2/prob_min', self.prob_min)
+
+    # def _get_train_op(self):
+    #     lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
+    #     optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+    #     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+    #         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net2')
+    #
+    #         # Gradient clipping to prevent loss explosion
+    #         gvs = optimizer.compute_gradients(loss_op, var_list=var_list)
+    #         gvs = [(tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max), var) for grad, var in
+    #                gvs]
+    #         gvs = [(tf.clip_by_norm(grad, hp.train2.clip_norm), var) for grad, var in gvs]
+    #
+    #     return optimizer.apply_gradients(gvs)
 
     @auto_reuse_variable_scope
-    def network(self, ppgs):
+    def network(self, ppgs, is_training):
         # Pre-net
         prenet_out = prenet(ppgs,
                             num_units=[hp.train2.hidden_units, hp.train2.hidden_units // 2],
                             dropout_rate=hp.train2.dropout_rate,
-                            is_training=self.is_training)  # (N, T, E/2)
+                            is_training=is_training)  # (N, T, E/2)
 
         # CBHG1: mel-scale
         # pred_mel = cbhg(prenet_out, hp.train2.num_banks, hp.train2.hidden_units // 2,
-        #                 hp.train2.num_highway_blocks, hp.train2.norm_type, self.is_training,
+        #                 hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
         #                 scope="cbhg_mel")
         # pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # (N, T, n_mels)
         pred_mel = prenet_out
@@ -114,7 +134,7 @@ class Net2(ModelDesc):
         # CBHG2: linear-scale
         pred_spec = tf.layers.dense(pred_mel, hp.train2.hidden_units // 2)  # (N, T, n_mels)
         pred_spec = cbhg(pred_spec, hp.train2.num_banks, hp.train2.hidden_units // 2,
-                         hp.train2.num_highway_blocks, hp.train2.norm_type, self.is_training,
+                         hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
                          scope="cbhg_linear")
         pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # (N, T, 1+hp.n_fft//2)
         pred_spec = tf.expand_dims(pred_spec, axis=-1)

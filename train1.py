@@ -19,7 +19,9 @@ from hparam import hparam as hp
 from models import Net1
 import tensorflow as tf
 
+
 def train(args, logdir):
+
     # model
     model = Net1()
 
@@ -63,12 +65,16 @@ def get_arguments():
     parser.add_argument('case', type=str, help='experiment case name')
     parser.add_argument('-ckpt', help='checkpoint to load model.')
     parser.add_argument('-gpu', help='comma separated list of GPU(s) to use.')
-    parser.add_argument('-r', action='store_true', help='start training from the beginning.')
     arguments = parser.parse_args()
     return arguments
 
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case)
-    train(args, logdir='{}/train1'.format(hp.logdir))
+    logdir_train1 = '{}/train1'.format(hp.logdir)
+
+    print('case: {}, logdir: {}'.format(args.case1, args.case, logdir_train1))
+
+    train(args, logdir=logdir_train1)
+
     print("Done")
