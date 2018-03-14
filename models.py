@@ -4,17 +4,14 @@
 import tensorflow as tf
 from tensorflow.contrib import distributions
 from tensorpack.graph_builder.model_desc import ModelDesc, InputDesc
-from tensorpack.train.tower import get_current_tower_context
-
-from data_load import phns
-from hparam import hparam as hp
-from modules import prenet, cbhg
-from tensorpack.tfutils.scope_utils import auto_reuse_variable_scope
 from tensorpack.tfutils import (
-    summary, get_current_tower_context, optimizer, gradproc)
-import re
+    get_current_tower_context, optimizer, gradproc)
+from tensorpack.tfutils.scope_utils import auto_reuse_variable_scope
 
 import tensorpack_extension
+from data_load import phns
+from hparam import hparam as hp
+from modules import prenet, cbhg, normalize
 
 
 class Net1(ModelDesc):
@@ -108,13 +105,15 @@ class Net2(ModelDesc):
         tf.summary.scalar('net2/prob_min', self.prob_min)
 
     def _get_optimizer(self):
-        lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
-        opt = tf.train.AdamOptimizer(learning_rate=lr)
         gradprocs = [
             tensorpack_extension.FilterGradientVariables('.*net2.*', verbose=False),
+            gradproc.MapGradient(lambda grad: tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max)),
             gradproc.GlobalNormClip(hp.train2.clip_norm),
-            gradproc.PrintGradient(),
+            # gradproc.PrintGradient(),
+            # gradproc.CheckGradient(),
         ]
+        lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
+        opt = tf.train.AdamOptimizer(learning_rate=lr)
         return optimizer.apply_grad_processors(opt, gradprocs)
 
     @auto_reuse_variable_scope
@@ -140,8 +139,11 @@ class Net2(ModelDesc):
         pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # (N, T, 1+hp.n_fft//2)
         pred_spec = tf.expand_dims(pred_spec, axis=-1)
         pred_spec_mu = tf.layers.dense(pred_spec, hp.train2.n_mixtures)  # (N, T, 1+hp.n_fft//2, n_mixtures)
-        pred_spec_phi = tf.nn.softmax(
-            tf.layers.dense(pred_spec, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
+
+        # normalize to prevent softmax output to be NaN.
+        logits = tf.layers.dense(pred_spec, hp.train2.n_mixtures)
+        normalized_logits = normalize(logits, type='ins', is_training=get_current_tower_context().is_training, scope='normalize_logits')
+        pred_spec_phi = tf.nn.softmax(normalized_logits)  # (N, T, 1+hp.n_fft//2, n_mixtures)
 
         return pred_spec_mu, pred_spec_phi
 
