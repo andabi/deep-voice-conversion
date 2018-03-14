@@ -45,7 +45,7 @@ def train(args, logdir1, logdir2):
     # )
 
     session_inits = []
-    ckpt2 = args.ckpt if args.ckpt else tf.train.latest_checkpoint(logdir2)
+    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     if ckpt2:
         session_inits.append(SaverRestore(ckpt2))
     ckpt1 = tf.train.latest_checkpoint(logdir1)

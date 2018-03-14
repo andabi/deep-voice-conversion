@@ -67,7 +67,7 @@ train2:
     lr_cyclic_steps: 5000
     clip_value_max: 3.
     clip_value_min: -3.
-    clip_norm: 100
+    clip_norm: 10
     mol_step: 0.001
     num_epochs: 10000
     steps_per_epoch: 100

@@ -12,6 +12,9 @@ from modules import prenet, cbhg
 from tensorpack.tfutils.scope_utils import auto_reuse_variable_scope
 from tensorpack.tfutils import (
     summary, get_current_tower_context, optimizer, gradproc)
+import re
+
+import tensorpack_extension
 
 
 class Net1(ModelDesc):
@@ -107,11 +110,11 @@ class Net2(ModelDesc):
     def _get_optimizer(self):
         lr = tf.get_variable('learning_rate', initializer=hp.train2.lr, trainable=False)
         opt = tf.train.AdamOptimizer(learning_rate=lr)
-        gradprocs = [gradproc.MapGradient(lambda grad: grad, regex='.*net2.*'),  # apply only gradients of net2
-                     gradproc.GlobalNormClip(hp.train2.clip_norm),
-                     # gradproc.PrintGradient()]
-                     ]
-
+        gradprocs = [
+            tensorpack_extension.FilterGradientVariables('.*net2.*', verbose=False),
+            gradproc.GlobalNormClip(hp.train2.clip_norm),
+            gradproc.PrintGradient(),
+        ]
         return optimizer.apply_grad_processors(opt, gradprocs)
 
     @auto_reuse_variable_scope

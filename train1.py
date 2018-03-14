@@ -47,7 +47,7 @@ def train(args, logdir):
         steps_per_epoch=hp.train1.steps_per_epoch,
         # session_config=session_conf
     )
-    ckpt = args.ckpt if args.ckpt else tf.train.latest_checkpoint(logdir)
+    ckpt = '{}/{}'.format(logdir, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir)
     if ckpt:
         train_conf.session_init = SaverRestore(ckpt)
 
