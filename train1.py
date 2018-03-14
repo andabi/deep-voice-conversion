@@ -48,7 +48,7 @@ def train(args, logdir):
         # session_config=session_conf
     )
     ckpt = args.ckpt if args.ckpt else tf.train.latest_checkpoint(logdir)
-    if ckpt and not args.r:
+    if ckpt:
         train_conf.session_init = SaverRestore(ckpt)
 
     if args.gpu:

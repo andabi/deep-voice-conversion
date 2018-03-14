@@ -169,6 +169,7 @@ def conv1d(inputs,
         outputs = tf.layers.conv1d(**params)
     return outputs
 
+
 def conv1d_banks(inputs, K=16, num_units=None, norm_type=None, is_training=True, scope="conv1d_banks", reuse=None):
     '''Applies a series of conv1d separately.
     
@@ -190,6 +191,7 @@ def conv1d_banks(inputs, K=16, num_units=None, norm_type=None, is_training=True,
             outputs.append(output)
         outputs = tf.concat(outputs, -1)
     return outputs # (N, T, Hp.embed_size//2*K)
+
 
 def gru(inputs, num_units=None, bidirection=False, seqlens=None, scope="gru", reuse=None):
     '''Applies a GRU.
@@ -223,6 +225,7 @@ def gru(inputs, num_units=None, bidirection=False, seqlens=None, scope="gru", re
                                            sequence_length=seqlens,
                                            dtype=tf.float32)
             return outputs
+
 
 def attention_decoder(inputs, memory, seqlens=None, num_units=None, scope="attention_decoder", reuse=None):
     '''Applies a GRU to `inputs`, while attending `memory`.

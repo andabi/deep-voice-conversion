@@ -63,7 +63,7 @@ train2:
     # train
     batch_size: 32
     lr: 0.0003
-    lr_cyclic_margin: 0.0002
+    lr_cyclic_margin: 0.
     lr_cyclic_steps: 5000
     clip_value_max: 3.
     clip_value_min: -3.
