@@ -68,7 +68,7 @@ train2:
     clip_value_max: 3.
     clip_value_min: -3.
     clip_norm: 10
-    mol_step: 0.002
+    mol_step: 0.001
     num_epochs: 10000
     steps_per_epoch: 100
     save_per_epoch: 50

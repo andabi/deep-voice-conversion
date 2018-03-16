@@ -136,12 +136,12 @@ class Net2(ModelDesc):
         pred_spec = cbhg(pred_spec, hp.train2.num_banks, hp.train2.hidden_units // 2,
                          hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
                          scope="cbhg_linear")
-        pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1])  # (N, T, 1+hp.n_fft//2)
+        pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1], activation=tf.nn.relu)  # (N, T, 1+hp.n_fft//2)
         pred_spec = tf.expand_dims(pred_spec, axis=-1)
-        pred_spec_mu = tf.layers.dense(pred_spec, hp.train2.n_mixtures)  # (N, T, 1+hp.n_fft//2, n_mixtures)
+        pred_spec_mu = tf.layers.dense(pred_spec, hp.train2.n_mixtures, bias_initializer=tf.random_normal_initializer)  # (N, T, 1+hp.n_fft//2, n_mixtures)
 
         # normalize to prevent softmax output to be NaN.
-        logits = tf.layers.dense(pred_spec, hp.train2.n_mixtures)
+        logits = tf.layers.dense(pred_spec, hp.train2.n_mixtures, bias_initializer=tf.random_normal_initializer)
         normalized_logits = normalize(logits, type='ins', is_training=get_current_tower_context().is_training, scope='normalize_logits')
         pred_spec_phi = tf.nn.softmax(normalized_logits)  # (N, T, 1+hp.n_fft//2, n_mixtures)
 
@@ -149,16 +149,25 @@ class Net2(ModelDesc):
 
     def loss(self):
         # negative log likelihood
-        normal_dists = []
+        logistic_dists = []
         for i in range(hp.train2.n_mixtures):
             mu = self.pred_spec_mu[..., i]
-            normal_dist = distributions.Logistic(mu, tf.ones_like(mu))
-            normal_dists.append(normal_dist)
+            logistic_dist = distributions.Logistic(mu, tf.ones_like(mu))
+            logistic_dists.append(logistic_dist)
         cat = distributions.Categorical(probs=self.pred_spec_phi)
-        mixture_dist = distributions.Mixture(cat=cat, components=normal_dists)
-        prob = mixture_dist.cdf(value=self.y_spec + hp.train2.mol_step) - \
-               mixture_dist.cdf(value=self.y_spec - hp.train2.mol_step)
+        mixture_dist = distributions.Mixture(cat=cat, components=logistic_dists)
+        cdf_pos = mixture_dist.cdf(value=self.y_spec + hp.train2.mol_step)
+        cdf_neg = mixture_dist.cdf(value=self.y_spec - hp.train2.mol_step)
+        prob = cdf_pos - cdf_neg
+        # FIXME: why minus prob?
         prob /= hp.train2.mol_step * 2
+
+        tf.summary.histogram('net2/train/cdf_pos', cdf_pos)
+        tf.summary.histogram('net2/train/cdf_neg', cdf_neg)
+        tf.summary.scalar('net2/train/min_cdf_pos', tf.reduce_min(cdf_pos))
+        tf.summary.scalar('net2/train/min_cdf_neg', tf.reduce_min(cdf_neg))
+        tf.summary.histogram('net2/train/prob', prob)
+
         self.prob_min = tf.reduce_min(prob)
         loss = -tf.reduce_mean(tf.log(prob + 1e-8))
         return loss
