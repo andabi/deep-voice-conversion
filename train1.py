@@ -14,8 +14,9 @@ import argparse
 
 
 def train(logdir='logdir/default/train1', queue=True):
+    print("in training")
     model = Model(mode="train1", batch_size=hp.Train1.batch_size, queue=queue)
-
+    print("completed model building")
     # Loss
     loss_op = model.loss_net1()
 
@@ -29,7 +30,7 @@ def train(logdir='logdir/default/train1', queue=True):
     with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
         var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1')
         train_op = optimizer.minimize(loss_op, global_step=global_step, var_list=var_list)
-
+    print("after optimizer")
     # Summary
     # for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'net/net1'):
     #     tf.summary.histogram(v.name, v)
@@ -43,6 +44,7 @@ def train(logdir='logdir/default/train1', queue=True):
         ),
     )
     # Training
+    print("Startinf sesion")
     with tf.Session(config=session_conf) as sess:
         # Load trained model
         sess.run(tf.global_variables_initializer())
@@ -51,12 +53,18 @@ def train(logdir='logdir/default/train1', queue=True):
         writer = tf.summary.FileWriter(logdir, sess.graph)
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-
+        print("starting epoches")
         for epoch in range(1, hp.Train1.num_epochs + 1):
+            print("epoch:",epoch)
             for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+                #print(model.num_batch)
+                #for step in range(model.num_batch):
+                #print("in step")
                 if queue:
+                    #print("in if")
                     sess.run(train_op)
                 else:
+                    #print("in else")
                     mfcc, ppg = get_batch(model.mode, model.batch_size)
                     sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_ppgs: ppg})
 
@@ -90,5 +98,5 @@ if __name__ == '__main__':
     args = get_arguments()
     case = args.case
     logdir = '{}/{}/train1'.format(logdir_path, case)
-    train(logdir=logdir)
+    train(logdir=logdir,queue=False)
     print("Done")

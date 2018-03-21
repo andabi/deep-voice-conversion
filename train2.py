@@ -46,9 +46,9 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
         writer = tf.summary.FileWriter(logdir2, sess.graph)
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
-
-        for epoch in range(1, hp.Train2.num_epochs + 1):
-            for step in tqdm(range(model.num_batch), total=model.num_batch, ncols=70, leave=False, unit='b'):
+        pbar = tqdm(range(1, hp.Train2.num_epochs + 1))
+        for epoch in pbar:
+            for step in range(model.num_batch):
                 if queue:
                     sess.run(train_op)
                 else:
@@ -56,7 +56,7 @@ def train(logdir1='logdir/default/train1', logdir2='logdir/default/train2', queu
                     sess.run(train_op, feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
             # Write checkpoint files at every epoch
-            summ, gs = sess.run([summ_op, global_step])
+            summ, gs = sess.run([summ_op, global_step],feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
 
             if epoch % hp.Train2.save_per_epoch == 0:
                 tf.train.Saver().save(sess, '{}/epoch_{}_step_{}'.format(logdir2, epoch, gs))
@@ -95,5 +95,5 @@ if __name__ == '__main__':
     case1, case2 = args.case1, args.case2
     logdir1 = '{}/{}/train1'.format(logdir_path, case1)
     logdir2 = '{}/{}/train2'.format(logdir_path, case2)
-    train(logdir1=logdir1, logdir2=logdir2)
+    train(logdir1=logdir1, logdir2=logdir2,queue=False)
     print("Done")
