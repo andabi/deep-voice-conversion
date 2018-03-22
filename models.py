@@ -12,6 +12,7 @@ import tensorpack_extension
 from data_load import phns
 from hparam import hparam as hp
 from modules import prenet, cbhg, normalize
+import sys
 
 
 class Net1(ModelDesc):
@@ -19,8 +20,8 @@ class Net1(ModelDesc):
         pass
 
     def _get_inputs(self):
-        return [InputDesc(tf.float32, (hp.train1.batch_size, None, hp.default.n_mfcc), 'x_mfccs'),
-                InputDesc(tf.int32, (hp.train1.batch_size, None,), 'y_ppgs')]
+        return [InputDesc(tf.float32, (None, None, hp.default.n_mfcc), 'x_mfccs'),
+                InputDesc(tf.int32, (None, None,), 'y_ppgs')]
 
     def _build_graph(self, inputs):
         self.x_mfccs, self.y_ppgs = inputs
@@ -50,8 +51,8 @@ class Net1(ModelDesc):
 
         # Final linear projection
         logits = tf.layers.dense(out, len(phns))  # (N, T, V)
-        ppgs = tf.nn.softmax(logits / hp.train1.t)  # (N, T, V)
-        preds = tf.to_int32(tf.arg_max(logits, dimension=-1))  # (N, T)
+        ppgs = tf.nn.softmax(logits / hp.train1.t, name='ppgs')  # (N, T, V)
+        preds = tf.to_int32(tf.argmax(logits, axis=-1))  # (N, T)
 
         return ppgs, preds, logits
 
@@ -72,13 +73,14 @@ class Net1(ModelDesc):
 
 
 class Net2(ModelDesc):
-    def __init__(self):
+    def __init__(self, batch_size):
         self.net1 = Net1()
+        self.batch_size = batch_size
 
     def _get_inputs(self):
-        return [InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_mfcc), 'x_mfccs'),
-                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_fft // 2 + 1), 'y_spec'),
-                InputDesc(tf.float32, (hp.train2.batch_size, None, hp.default.n_mels), 'y_mel'), ]
+        return [InputDesc(tf.float32, (self.batch_size, None, hp.default.n_mfcc), 'x_mfccs'),
+                InputDesc(tf.float32, (self.batch_size, None, hp.default.n_fft // 2 + 1), 'y_spec'),
+                InputDesc(tf.float32, (self.batch_size, None, hp.default.n_mels), 'y_mel'), ]
 
     def _build_graph(self, inputs):
         self.x_mfcc, self.y_spec, self.y_mel = inputs
@@ -91,18 +93,19 @@ class Net2(ModelDesc):
 
         # build net2
         with tf.variable_scope('net2'):
-            self.pred_spec_mu, self.pred_spec_phi = self.network(self.ppgs, is_training)
+            self.pred_spec_mu, self.pred_spec_logvar, self.pred_spec_phi = self.network(self.ppgs, is_training)
 
         self.cost = self.loss()
+
+        # build for conversion phase
+        self.convert()
 
         # summaries
         tf.summary.scalar('net2/train/loss', self.cost)
         # tf.summary.scalar('net2/train/lr', lr)
         tf.summary.histogram('net2/train/mu', self.pred_spec_mu)
+        tf.summary.histogram('net2/train/var', tf.exp(self.pred_spec_logvar))
         tf.summary.histogram('net2/train/phi', self.pred_spec_phi)
-
-        # TODO remove
-        tf.summary.scalar('net2/prob_min', self.prob_min)
 
     def _get_optimizer(self):
         gradprocs = [
@@ -132,42 +135,67 @@ class Net2(ModelDesc):
         pred_mel = prenet_out
 
         # CBHG2: linear-scale
-        pred_spec = tf.layers.dense(pred_mel, hp.train2.hidden_units // 2)  # (N, T, n_mels)
-        pred_spec = cbhg(pred_spec, hp.train2.num_banks, hp.train2.hidden_units // 2,
+        out = tf.layers.dense(pred_mel, hp.train2.hidden_units // 2)  # (N, T, n_mels)
+        out = cbhg(out, hp.train2.num_banks, hp.train2.hidden_units // 2,
                          hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
                          scope="cbhg_linear")
-        pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1], activation=tf.nn.relu)  # (N, T, 1+hp.n_fft//2)
-        pred_spec = tf.expand_dims(pred_spec, axis=-1)
-        pred_spec_mu = tf.layers.dense(pred_spec, hp.train2.n_mixtures, bias_initializer=tf.random_normal_initializer)  # (N, T, 1+hp.n_fft//2, n_mixtures)
+
+        batch_size, _, num_bins = self.y_spec.get_shape().as_list()
+        num_units = num_bins * hp.train2.n_mixtures
+        out = tf.layers.dense(out, num_units * 3, bias_initializer=tf.random_uniform_initializer(minval=-3., maxval=3.))
+
+        mu = tf.nn.sigmoid(out[..., :num_units])
+        mu = tf.reshape(mu, shape=(batch_size, -1, num_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
+
+        logvar = tf.clip_by_value(out[..., num_units: 2 * num_units], clip_value_min=-7, clip_value_max=7)
+        logvar = tf.reshape(logvar, shape=(batch_size, -1, num_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
 
         # normalize to prevent softmax output to be NaN.
-        logits = tf.layers.dense(pred_spec, hp.train2.n_mixtures, bias_initializer=tf.random_normal_initializer)
-        normalized_logits = normalize(logits, type='ins', is_training=get_current_tower_context().is_training, scope='normalize_logits')
-        pred_spec_phi = tf.nn.softmax(normalized_logits)  # (N, T, 1+hp.n_fft//2, n_mixtures)
+        pi = tf.reshape(out[..., 2 * num_units: 3 * num_units], shape=(batch_size, -1, num_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
+        pi = normalize(pi, type='ins', is_training=get_current_tower_context().is_training, scope='normalize_phi')
+        pi = tf.nn.softmax(pi)
 
-        return pred_spec_mu, pred_spec_phi
+        return mu, logvar, pi
 
     def loss(self):
         # negative log likelihood
         logistic_dists = []
         for i in range(hp.train2.n_mixtures):
             mu = self.pred_spec_mu[..., i]
-            logistic_dist = distributions.Logistic(mu, tf.ones_like(mu))
+            logvar = self.pred_spec_logvar[..., i]
+            logistic_dist = distributions.Logistic(mu, tf.exp(logvar))
             logistic_dists.append(logistic_dist)
         cat = distributions.Categorical(probs=self.pred_spec_phi)
         mixture_dist = distributions.Mixture(cat=cat, components=logistic_dists)
         cdf_pos = mixture_dist.cdf(value=self.y_spec + hp.train2.mol_step)
         cdf_neg = mixture_dist.cdf(value=self.y_spec - hp.train2.mol_step)
-        prob = cdf_pos - cdf_neg
         # FIXME: why minus prob?
+        prob = cdf_pos - cdf_neg
         prob /= hp.train2.mol_step * 2
+        prob = tf.maximum(prob, sys.float_info.epsilon)
 
         tf.summary.histogram('net2/train/cdf_pos', cdf_pos)
         tf.summary.histogram('net2/train/cdf_neg', cdf_neg)
         tf.summary.scalar('net2/train/min_cdf_pos', tf.reduce_min(cdf_pos))
         tf.summary.scalar('net2/train/min_cdf_neg', tf.reduce_min(cdf_neg))
         tf.summary.histogram('net2/train/prob', prob)
+        tf.summary.scalar('net2/prob_min', tf.reduce_min(prob))
 
-        self.prob_min = tf.reduce_min(prob)
-        loss = -tf.reduce_mean(tf.log(prob + 1e-8))
+        loss_mle = -tf.reduce_mean(tf.log(prob))
+
+        mean = tf.reduce_sum(self.pred_spec_mu * self.pred_spec_phi, axis=-1, keep_dims=True)
+        loss_mix = tf.reduce_sum(self.pred_spec_phi * tf.squared_difference(self.pred_spec_mu, mean), axis=-1)
+        loss_mix = -tf.reduce_mean(loss_mix)
+
+        lamb = 0
+        loss = loss_mle + lamb * loss_mix
+
+        tf.summary.scalar('net2/train/loss_mle', loss_mle)
+        tf.summary.scalar('net2/train/loss_mix', loss_mix)
+
         return loss
+
+    def convert(self):
+        argmax = tf.one_hot(tf.argmax(self.pred_spec_phi, axis=-1), hp.train2.n_mixtures)
+        pred_spec = tf.reduce_sum(self.pred_spec_mu * argmax, axis=-1, name='pred_spec')
+        return pred_spec

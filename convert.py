@@ -6,115 +6,134 @@ from __future__ import print_function
 
 import argparse
 
-from data_load import get_wav_batch, get_batch
-from models import Model
+from models import Net2
 import numpy as np
-from audio import spectrogram2wav, inv_preemphasis, db_to_amp
+from audio import spec2wav, inv_preemphasis, db2amp, denormalize_db
 import datetime
 import tensorflow as tf
 from hparam import hparam as hp
-from utils import denormalize_0_1
+from data_load import Net2DataFlow
+from tensorpack.predict.base import OfflinePredictor
+from tensorpack.predict.config import PredictConfig
+from tensorpack.tfutils.sessinit import SaverRestore
+from tensorpack.tfutils.sessinit import ChainInit
 
 
-def convert(logdir, writer, queue=False, step=None):
+def convert(model, mfccs, spec, mel, ckpt1=None, ckpt2=None):
+    session_inits = []
+    if ckpt2:
+        session_inits.append(SaverRestore(ckpt2))
+    if ckpt1:
+        session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
+
+    pred_conf = PredictConfig(
+        model=model,
+        input_names=get_eval_input_names(),
+        output_names=get_eval_output_names(),
+        session_init=ChainInit(session_inits))
+    predict_spec = OfflinePredictor(pred_conf)
+
+    pred_spec, y_spec, ppgs = predict_spec(mfccs, spec, mel)
+
+    return pred_spec, y_spec, ppgs
+
+
+def get_eval_input_names():
+    return ['x_mfccs', 'y_spec', 'y_mel']
+
+
+def get_eval_output_names():
+    return ['pred_spec', 'y_spec', 'net1/ppgs']
+
+
+def do_convert(args, logdir1, logdir2):
 
     # Load graph
-    model = Model(mode="convert", batch_size=hp.convert.batch_size, queue=queue)
+    model = Net2(batch_size=hp.convert.batch_size)
 
-    session_conf = tf.ConfigProto(
-        allow_soft_placement=True,
-        device_count={'CPU': 1, 'GPU': 0},
-        gpu_options=tf.GPUOptions(
-            allow_growth=True,
-            per_process_gpu_memory_fraction=0.6
-        ),
-    )
-    with tf.Session(config=session_conf) as sess:
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load(sess, 'convert', logdir=logdir, step=step)
+    df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
 
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
+    # samples
+    mfccs, spec, mel = df().get_data().next()
 
-        epoch, gs = Model.get_epoch_and_global_step(logdir, step=step)
+    ckpt1 = tf.train.latest_checkpoint(logdir1)
+    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
 
-        if queue:
-            pred_spec, y_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs])
-        else:
-            if hp.convert.one_full_wav:
-                mfcc, spec, mel = get_wav_batch(model.mode, model.batch_size)
-            else:
-                mfcc, spec, mel = get_batch(model.mode, model.batch_size)
+    pred_spec, y_spec, ppgs = convert(model, mfccs, spec, mel, ckpt1, ckpt2)
+    print(np.max(pred_spec))
+    print(np.min(pred_spec))
 
-            pred_spec, y_spec, ppgs = sess.run([model(), model.y_spec, model.ppgs], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
+    # Denormalizatoin
+    pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
+    y_spec = denormalize_db(y_spec, hp.default.max_db, hp.default.min_db)
 
-        # De-quantization
-        # bins = np.linspace(0, 1, hp.default.quantize_db)
-        # y_spec = bins[y_spec]
+    # Db to amp
+    pred_spec = db2amp(pred_spec)
+    y_spec = db2amp(y_spec)
 
-        # Denormalizatoin
-        pred_spec = denormalize_0_1(pred_spec, hp.default.max_db, hp.default.min_db)
-        y_spec = denormalize_0_1(y_spec, hp.default.max_db, hp.default.min_db)
+    # Emphasize the magnitude
+    pred_spec = np.power(pred_spec, hp.convert.emphasis_magnitude)
+    y_spec = np.power(y_spec, hp.convert.emphasis_magnitude)
 
-        # Db to amp
-        pred_spec = db_to_amp(pred_spec)
-        y_spec = db_to_amp(y_spec)
+    # Spectrogram to waveform
+    audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
+                                               hp.default.n_iter), pred_spec))
+    y_audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
+                                                 hp.default.n_iter), y_spec))
 
-        # Convert log of magnitude to magnitude
-        # pred_specs, y_specs = np.e ** pred_specs, np.e ** y_spec
+    # Apply inverse pre-emphasis
+    audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
+    y_audio = inv_preemphasis(y_audio, coeff=hp.default.preemphasis)
 
-        # Emphasize the magnitude
-        pred_spec = np.power(pred_spec, hp.convert.emphasis_magnitude)
-        y_spec = np.power(y_spec, hp.convert.emphasis_magnitude)
+    if hp.convert.one_full_wav:
+        # Concatenate to a wav
+        y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
+        audio = np.reshape(audio, (1, audio.size), order='C')
 
-        # Spectrogram to waveform
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), pred_spec))
-        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length, hp.default.n_iter), y_spec))
+    # Write the result
+    tf.summary.audio('A', y_audio, hp.default.sr, max_outputs=hp.convert.batch_size)
+    tf.summary.audio('B', audio, hp.default.sr, max_outputs=hp.convert.batch_size)
 
-        # Apply inverse pre-emphasis
-        audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
-        y_audio = inv_preemphasis(y_audio, coeff=hp.default.preemphasis)
+    # Visualize PPGs
+    heatmap = np.expand_dims(ppgs, 3)  # channel=1
+    tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
 
-        if hp.convert.one_full_wav:
-            # Concatenate to a wav
-            y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
-            audio = np.reshape(audio, (1, audio.size), order='C')
+    writer = tf.summary.FileWriter(logdir2)
+    with tf.Session() as sess:
+        summ = sess.run(tf.summary.merge_all())
+    writer.add_summary(summ)
+    writer.close()
 
-        # Write the result
-        tf.summary.audio('A', y_audio, hp.default.sr, max_outputs=hp.convert.batch_size)
-        tf.summary.audio('B', audio, hp.default.sr, max_outputs=hp.convert.batch_size)
-
-        # Visualize PPGs
-        heatmap = np.expand_dims(ppgs, 3)  # channel=1
-        tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
-
-        writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
-
-        coord.request_stop()
-        coord.join(threads)
+    # session_conf = tf.ConfigProto(
+    #     allow_soft_placement=True,
+    #     device_count={'CPU': 1, 'GPU': 0},
+    #     gpu_options=tf.GPUOptions(
+    #         allow_growth=True,
+    #         per_process_gpu_memory_fraction=0.6
+    #     ),
+    # )
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case', type=str, help='experiment case name')
-    parser.add_argument('-step', type=int, help='checkpoint step to load', nargs='?', default=None)
+    parser.add_argument('case1', type=str, help='experiment case name of train1')
+    parser.add_argument('case2', type=str, help='experiment case name of train2')
+    parser.add_argument('-ckpt', help='checkpoint to load model.')
     arguments = parser.parse_args()
     return arguments
 
 
 if __name__ == '__main__':
     args = get_arguments()
-    hp.set_hparam_yaml(args.case)
-    logdir = '{}/train2'.format(hp.logdir)
+    hp.set_hparam_yaml(args.case2)
+    logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
+    logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
-    print('case: {}, logdir: {}'.format(args.case, logdir))
+    print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
 
     s = datetime.datetime.now()
 
-    writer = tf.summary.FileWriter(logdir)
-    convert(logdir=logdir, writer=writer, step=args.step)
-    writer.close()
+    do_convert(args, logdir1=logdir_train1, logdir2=logdir_train2)
 
     e = datetime.datetime.now()
     diff = e - s

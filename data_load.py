@@ -14,7 +14,7 @@ from hparam import hparam as hp
 from utils import normalize_0_1
 
 
-class Net1DataFlow(RNGDataFlow):
+class DataFlow(RNGDataFlow):
 
     def __init__(self, data_path, batch_size):
         self.batch_size = batch_size
@@ -26,6 +26,9 @@ class Net1DataFlow(RNGDataFlow):
             df = BatchData(df, self.batch_size)
         df = PrefetchData(df, n_prefetch, n_thread)
         return df
+
+
+class Net1DataFlow(DataFlow):
 
     def get_data(self):
         while True:
@@ -33,18 +36,7 @@ class Net1DataFlow(RNGDataFlow):
             yield get_mfccs_and_phones(wav_file=wav_file)
 
 
-class Net2DataFlow(RNGDataFlow):
-
-    def __init__(self, data_path, batch_size):
-        self.batch_size = batch_size
-        self.wav_files = glob.glob(data_path)
-
-    def __call__(self, n_prefetch=1000, n_thread=1):
-        df = self
-        if self.batch_size > 1:
-            df = BatchData(df, self.batch_size)
-        df = PrefetchData(df, n_prefetch, n_thread)
-        return df
+class Net2DataFlow(DataFlow):
 
     def get_data(self):
         while True:

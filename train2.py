@@ -29,7 +29,7 @@ import os
 
 def train(args, logdir1, logdir2):
     # model
-    model = Net2()
+    model = Net2(batch_size=hp.train2.batch_size)
 
     # dataflow
     df = Net2DataFlow(hp.train2.data_path, hp.train2.batch_size)
@@ -91,8 +91,8 @@ def get_arguments():
 if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case2)
-    logdir_train1 = '{}/train1'.format(hp.logdir)
-    logdir_train2 = '{}/train2'.format(hp.logdir)
+    logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
+    logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
     print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
 

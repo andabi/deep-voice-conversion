@@ -6,6 +6,23 @@ default:
 #    lr: 0.0001
     steps_per_epoch: 1
 ---
+mix_1:
+  train2:
+    num_mixtures: 1
+---
+mix_2:
+  train2:
+    num_mixtures: 2
+---
+mix_10:
+  train2:
+    num_mixtures: 10
+---
+mix_5_256:
+  train2:
+    hidden_units: 256
+    num_mixtures: 10
+---
 mol_iu:
   train2:
     data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
