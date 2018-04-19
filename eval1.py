@@ -7,65 +7,54 @@ import argparse
 
 import tensorflow as tf
 
-from data_load import get_batch, phns, load_vocab
+from data_load import Net1DataFlow, phns, load_vocab
 from hparam import hparam as hp
-from models import Model
+from models import Net1
 from utils import plot_confusion_matrix
+from tensorpack.predict.config import PredictConfig
+from tensorpack.predict.base import OfflinePredictor
+from tensorpack.tfutils.sessinit import SaverRestore
 
 
-def eval(logdir, writer, queue=False):
+def get_eval_input_names():
+    return ['x_mfccs', 'y_ppgs']
+
+
+def get_eval_output_names():
+    return ['net1/eval/y_ppg_1d', 'net1/eval/pred_ppg_1d',  'net1/eval/summ_loss', 'net1/eval/summ_acc']
+
+
+def eval(logdir):
     # Load graph
-    model = Model(mode="test1", batch_size=hp.test1.batch_size, queue=queue)
+    model = Net1()
 
-    # Accuracy
-    acc_op = model.acc_net1()
+    # dataflow
+    df = Net1DataFlow(hp.test1.data_path, hp.test1.batch_size)
 
-    # Loss
-    loss_op = model.loss_net1()
+    ckpt = tf.train.latest_checkpoint(logdir)
 
-    # confusion matrix
-    y_ppg_1d = tf.reshape(model.y_ppg, shape=(tf.size(model.y_ppg),))
-    pred_ppg_1d = tf.reshape(model.pred_ppg, shape=(tf.size(model.pred_ppg),))
+    pred_conf = PredictConfig(
+        model=model,
+        input_names=get_eval_input_names(),
+        output_names=get_eval_output_names())
+    if ckpt:
+        pred_conf.session_init = SaverRestore(ckpt)
+    predictor = OfflinePredictor(pred_conf)
 
-    # Summary
-    tf.summary.scalar('net1/eval/acc', acc_op)
-    tf.summary.scalar('net1/eval/loss', loss_op)
-    summ_op = tf.summary.merge_all()
+    x_mfccs, y_ppgs = next(df().get_data())
+    y_ppg_1d, pred_ppg_1d, summ_loss, summ_acc = predictor(x_mfccs, y_ppgs)
 
-    session_conf = tf.ConfigProto(
-        allow_soft_placement=True,
-        device_count={'CPU': 1, 'GPU': 0},
-    )
-    with tf.Session(config=session_conf) as sess:
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
+    # plot confusion matrix
+    _, idx2phn = load_vocab()
+    y_ppg_1d = [idx2phn[i] for i in y_ppg_1d]
+    pred_ppg_1d = [idx2phn[i] for i in pred_ppg_1d]
+    summ_cm = plot_confusion_matrix(y_ppg_1d, pred_ppg_1d, phns)
 
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load(sess, 'train1', logdir=logdir)
-
-        if queue:
-            summ, acc, loss, y_ppg_1d, pred_ppg_1d = sess.run([summ_op, acc_op, loss_op, y_ppg_1d, pred_ppg_1d])
-        else:
-            mfcc, ppg = get_batch(model.mode, model.batch_size)
-            summ, acc, loss, y_ppg_1d, pred_ppg_1d = sess.run([summ_op, acc_op, loss_op, y_ppg_1d, pred_ppg_1d],
-                                                              feed_dict={model.x_mfcc: mfcc, model.y_ppg: ppg})
-
-        # plot confusion matrix
-        _, idx2phn = load_vocab()
-        y_ppg_1d = [idx2phn[i] for i in y_ppg_1d]
-        pred_ppg_1d = [idx2phn[i] for i in pred_ppg_1d]
-        cm_summ = plot_confusion_matrix(y_ppg_1d, pred_ppg_1d, phns)
-
-        writer.add_summary(summ)
-        writer.add_summary(cm_summ)
-
-        print("acc:", acc)
-        print("loss:", loss)
-        print('\n')
-
-        coord.request_stop()
-        coord.join(threads)
+    writer = tf.summary.FileWriter(logdir)
+    writer.add_summary(summ_loss)
+    writer.add_summary(summ_acc)
+    writer.add_summary(summ_cm)
+    writer.close()
 
 
 def get_arguments():
@@ -79,8 +68,6 @@ if __name__ == '__main__':
     args = get_arguments()
     hp.set_hparam_yaml(args.case)
     logdir = '{}/train1'.format(hp.logdir)
-    writer = tf.summary.FileWriter(logdir)
-    eval(logdir=logdir, writer=writer)
-    writer.close()
+    eval(logdir=logdir)
 
     print("Done")

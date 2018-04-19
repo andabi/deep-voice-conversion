@@ -4,32 +4,28 @@
 from __future__ import print_function
 
 import argparse
-import math
+import os
 
 import tensorflow as tf
 from tensorpack.callbacks.saver import ModelSaver
-from tensorpack.graph_builder.distributed import DataParallelBuilder
-from tensorpack.graph_builder.utils import LeastLoadedDeviceSetter
 from tensorpack.input_source.input_source import QueueInput
-from tensorpack.input_source.input_source import StagingInput
 from tensorpack.tfutils.sessinit import ChainInit
 from tensorpack.tfutils.sessinit import SaverRestore
-from tensorpack.tfutils.tower import TowerFuncWrapper
 from tensorpack.train.interface import TrainConfig
 from tensorpack.train.interface import launch_train_with_config
-from tensorpack.train.tower import TowerTrainer
 from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
 from tensorpack.utils import logger
 
+from convert import ConvertCallback
 from data_load import Net2DataFlow
 from hparam import hparam as hp
 from models import Net2
-import os
+from utils import remove_all_files
 
 
 def train(args, logdir1, logdir2):
     # model
-    model = Net2(batch_size=hp.train2.batch_size)
+    model = Net2()
 
     # dataflow
     df = Net2DataFlow(hp.train2.data_path, hp.train2.batch_size)
@@ -57,7 +53,7 @@ def train(args, logdir1, logdir2):
         callbacks=[
             # TODO save on prefix net2
             ModelSaver(checkpoint_dir=logdir2),
-            # TODO EvalCallback()
+            # ConvertCallback(logdir2, hp.train2.test_per_epoch),
         ],
         max_epoch=hp.train2.num_epochs,
         steps_per_epoch=hp.train2.steps_per_epoch,
@@ -84,6 +80,7 @@ def get_arguments():
     parser.add_argument('case2', type=str, help='experiment case name of train2')
     parser.add_argument('-ckpt', help='checkpoint to load model.')
     parser.add_argument('-gpu', help='comma separated list of GPU(s) to use.')
+    parser.add_argument('-r', action='store_true', help='start training from the beginning.')
     arguments = parser.parse_args()
     return arguments
 
@@ -93,6 +90,9 @@ if __name__ == '__main__':
     hp.set_hparam_yaml(args.case2)
     logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
     logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
+
+    if args.r:
+        remove_all_files(logdir_train2)
 
     print('case1: {}, case2: {}, logdir1: {}, logdir2: {}'.format(args.case1, args.case2, logdir_train1, logdir_train2))
 

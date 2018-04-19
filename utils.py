@@ -24,8 +24,8 @@ def split_path(path):
     return basepath, filename, extension
 
 
-def remove_all_files(prefix):
-    files = glob.glob(prefix + '*')
+def remove_all_files(path):
+    files = glob.glob('{}/*'.format(path))
     for f in files:
         os.remove(f)
 

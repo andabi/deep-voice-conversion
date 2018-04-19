@@ -6,69 +6,35 @@ default:
 #    lr: 0.0001
     steps_per_epoch: 1
 ---
-mix_1:
+mol/lj:
   train2:
-    num_mixtures: 1
----
-mix_2:
-  train2:
-    num_mixtures: 2
----
-mix_10:
-  train2:
-    num_mixtures: 10
----
-mix_5_256:
-  train2:
-    hidden_units: 256
-    num_mixtures: 10
----
-mol_iu:
-  train2:
-    data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
-    clip_value_max: 3.
-    clip_value_min: -3.
-    clip_norm: 50
-    dropout_rate: 0.1
-    lr_cyclic_margin: 0.
-  test2:
-    data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
+    data_path: '/data/public/rw/LJSpeech-1.0_processed/*.wav'
   convert:
-    data_path: '/data/private/vc/datasets/test/2018.wav'
-    one_full_wav: True
     batch_size: 3
     emphasis_magnitude: 1.3
 ---
-mol_1_iu:
+mol/lj/2:
   train2:
-    data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
-    clip_value_max: 3.
-    clip_value_min: -3.
-    clip_norm: 50
-    dropout_rate: 0.1
-    lr_cyclic_margin: 0.
-    n_mixtures: 1
-  test2:
-    data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
+    data_path: '/data/public/rw/LJSpeech-1.0_processed/*.wav'
+    hidden_units: 512  # alias: E
+    num_banks: 8
+    num_highway_blocks: 16
+    norm_type: 'ins'  # a normalizer function. value: bn, ln, ins, or None
+    dropout_rate: 0
   convert:
-    data_path: '/data/private/vc/datasets/test/2018.wav'
-    one_full_wav: True
     batch_size: 3
     emphasis_magnitude: 1.3
 ---
-mol_log_iu:
-  train2:
-    data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
-    clip_value_max: 3.
-    clip_value_min: -3.
-    clip_norm: 50
-    dropout_rate: 0.1
-    lr_cyclic_margin: 0.
+mol/arctic:
+  convert:
+    batch_size: 3
     lr: 0.0001
-  test2:
+---
+mol/iu:
+  train2:
     data_path: '/data/private/vc/datasets/IU/*_split/*.wav'
+    lr: 0.0001
   convert:
     data_path: '/data/private/vc/datasets/test/2018.wav'
-    one_full_wav: True
-    batch_size: 3
+    batch_size: 1
     emphasis_magnitude: 1.3

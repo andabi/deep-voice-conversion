@@ -4,68 +4,67 @@
 from __future__ import print_function
 
 import tensorflow as tf
-from data_load import get_batch
-from models import Model
+from models import Net2
 import argparse
 from hparam import hparam as hp
+from tensorpack.predict.base import OfflinePredictor
+from tensorpack.predict.config import PredictConfig
+from tensorpack.tfutils.sessinit import SaverRestore
+from tensorpack.tfutils.sessinit import ChainInit
+from data_load import Net2DataFlow
 
 
-def eval(logdir, writer, queue=True):
+def get_eval_input_names():
+    return ['x_mfccs', 'y_spec']
 
+
+def get_eval_output_names():
+    return ['net2/eval/summ_loss']
+
+
+def eval(logdir1, logdir2):
     # Load graph
-    model = Model(mode="test2", batch_size=hp.test2.batch_size, queue=queue)
+    model = Net2()
 
-    # Loss
-    loss_op = model.loss_net2()
+    # dataflow
+    df = Net2DataFlow(hp.test2.data_path, hp.test2.batch_size)
 
-    # Summary
-    summ_op = summaries(loss_op)
+    ckpt1 = tf.train.latest_checkpoint(logdir1)
+    ckpt2 = tf.train.latest_checkpoint(logdir2)
+    session_inits = []
+    if ckpt2:
+        session_inits.append(SaverRestore(ckpt2))
+    if ckpt1:
+        session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
+    pred_conf = PredictConfig(
+        model=model,
+        input_names=get_eval_input_names(),
+        output_names=get_eval_output_names(),
+        session_init=ChainInit(session_inits))
+    predictor = OfflinePredictor(pred_conf)
 
-    session_conf = tf.ConfigProto(
-        allow_soft_placement=True,
-        device_count={'CPU': 1, 'GPU': 0},
-    )
-    with tf.Session(config=session_conf) as sess:
-        # Load trained model
-        sess.run(tf.global_variables_initializer())
-        model.load(sess, 'test2', logdir=logdir)
+    x_mfccs, y_spec, _ = next(df().get_data())
+    summ_loss, = predictor(x_mfccs, y_spec)
 
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
-
-        if queue:
-            summ, loss = sess.run([summ_op, loss_op])
-        else:
-            mfcc, spec, mel = get_batch(model.mode, model.batch_size)
-            summ, loss = sess.run([summ_op, loss_op], feed_dict={model.x_mfcc: mfcc, model.y_spec: spec, model.y_mel: mel})
-
-        writer.add_summary(summ)
-
-        coord.request_stop()
-        coord.join(threads)
-
-        print("loss:", loss)
-
-
-def summaries(loss):
-    tf.summary.scalar('net2/eval/loss', loss)
-    return tf.summary.merge_all()
+    writer = tf.summary.FileWriter(logdir2)
+    writer.add_summary(summ_loss)
+    writer.close()
 
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('case', type=str, help='experiment case name')
+    parser.add_argument('case1', type=str, help='experiment case name of train1')
+    parser.add_argument('case2', type=str, help='experiment case name of train2')
     arguments = parser.parse_args()
     return arguments
 
 
 if __name__ == '__main__':
     args = get_arguments()
-    hp.set_hparam_yaml(args.case)
-    logdir = '{}/train2'.format(hp.logdir)
+    hp.set_hparam_yaml(args.case2)
+    logdir_train1 = '{}/{}/train1'.format(hp.logdir_path, args.case1)
+    logdir_train2 = '{}/{}/train2'.format(hp.logdir_path, args.case2)
 
-    writer = tf.summary.FileWriter(logdir)
-    eval(logdir=logdir, writer=writer)
-    writer.close()
+    eval(logdir1=logdir_train1, logdir2=logdir_train2)
 
     print("Done")

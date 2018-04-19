@@ -4,7 +4,36 @@
 import re
 from tensorpack.utils import logger
 from tensorpack.tfutils.gradproc import GradientProcessor
+from tensorpack.callbacks.monitor import JSONWriter
+import tensorflow as tf
 
+
+# class AudioWriter(TrainingMonitor):
+#     """
+#     Write summaries to TensorFlow event file.
+#     """
+#     def __new__(cls):
+#         if logger.get_logger_dir():
+#             return super(TFEventWriter, cls).__new__(cls)
+#         else:
+#             logger.warn("logger directory was not set. Ignore TFEventWriter.")
+#             return NoOpMonitor()
+#
+#     def _setup_graph(self):
+#         self._writer = tf.summary.FileWriter(logger.get_logger_dir(), graph=tf.get_default_graph())
+#
+#     def process_summary(self, summary):
+#         self._writer.add_summary(summary, self.global_step)
+#
+#     def process_event(self, evt):
+#         self._writer.add_event(evt)
+#
+#     def _trigger(self):     # flush every epoch
+#         self._writer.flush()
+#
+#     def _after_train(self):
+#         self._writer.close()
+#
 
 class FilterGradientVariables(GradientProcessor):
     """

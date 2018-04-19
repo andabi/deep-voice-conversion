@@ -62,16 +62,17 @@ train2:
 
     # train
     batch_size: 32
-    lr: 0.0001
+    lr: 0.0003
     lr_cyclic_margin: 0.
     lr_cyclic_steps: 5000
     clip_value_max: 3.
     clip_value_min: -3.
     clip_norm: 10
-    mol_step: 0.001
-    num_epochs: 100000
-    steps_per_epoch: 10
+    mol_step: 0.003
+    num_epochs: 10000
+    steps_per_epoch: 100
     save_per_epoch: 50
+    test_per_epoch: 1
     num_gpu: 4
 ---
 test1:
@@ -94,5 +95,5 @@ convert:
 
     # convert
     one_full_wav: False
-    batch_size: 3
-    emphasis_magnitude: 1.5
+    batch_size: 1
+    emphasis_magnitude: 1.2

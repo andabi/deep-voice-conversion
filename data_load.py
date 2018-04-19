@@ -22,8 +22,7 @@ class DataFlow(RNGDataFlow):
 
     def __call__(self, n_prefetch=1000, n_thread=1):
         df = self
-        if self.batch_size > 1:
-            df = BatchData(df, self.batch_size)
+        df = BatchData(df, self.batch_size)
         df = PrefetchData(df, n_prefetch, n_thread)
         return df
 

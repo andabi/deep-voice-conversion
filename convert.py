@@ -17,51 +17,32 @@ from tensorpack.predict.base import OfflinePredictor
 from tensorpack.predict.config import PredictConfig
 from tensorpack.tfutils.sessinit import SaverRestore
 from tensorpack.tfutils.sessinit import ChainInit
+from tensorpack.callbacks.base import Callback
 
 
-def convert(model, mfccs, spec, mel, ckpt1=None, ckpt2=None):
-    session_inits = []
-    if ckpt2:
-        session_inits.append(SaverRestore(ckpt2))
-    if ckpt1:
-        session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
-
-    pred_conf = PredictConfig(
-        model=model,
-        input_names=get_eval_input_names(),
-        output_names=get_eval_output_names(),
-        session_init=ChainInit(session_inits))
-    predict_spec = OfflinePredictor(pred_conf)
-
-    pred_spec, y_spec, ppgs = predict_spec(mfccs, spec, mel)
-
-    return pred_spec, y_spec, ppgs
-
-
-def get_eval_input_names():
-    return ['x_mfccs', 'y_spec', 'y_mel']
+# class ConvertCallback(Callback):
+#     def __init__(self, logdir, test_per_epoch=1):
+#         self.df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
+#         self.logdir = logdir
+#         self.test_per_epoch = test_per_epoch
+#
+#     def _setup_graph(self):
+#         self.predictor = self.trainer.get_predictor(
+#             get_eval_input_names(),
+#             get_eval_output_names())
+#
+#     def _trigger_epoch(self):
+#         if self.epoch_num % self.test_per_epoch == 0:
+#             audio, y_audio, _ = convert(self.predictor, self.df)
+#             # self.trainer.monitors.put_scalar('eval/accuracy', acc)
+#
+#             # Write the result
+#             # tf.summary.audio('A', y_audio, hp.default.sr, max_outputs=hp.convert.batch_size)
+#             # tf.summary.audio('B', audio, hp.default.sr, max_outputs=hp.convert.batch_size)
 
 
-def get_eval_output_names():
-    return ['pred_spec', 'y_spec', 'net1/ppgs']
-
-
-def do_convert(args, logdir1, logdir2):
-
-    # Load graph
-    model = Net2(batch_size=hp.convert.batch_size)
-
-    df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
-
-    # samples
-    mfccs, spec, mel = df().get_data().next()
-
-    ckpt1 = tf.train.latest_checkpoint(logdir1)
-    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
-
-    pred_spec, y_spec, ppgs = convert(model, mfccs, spec, mel, ckpt1, ckpt2)
-    print(np.max(pred_spec))
-    print(np.min(pred_spec))
+def convert(predictor, df):
+    pred_spec, y_spec, ppgs = predictor(next(df().get_data()))
 
     # Denormalizatoin
     pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
@@ -85,10 +66,43 @@ def do_convert(args, logdir1, logdir2):
     audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
     y_audio = inv_preemphasis(y_audio, coeff=hp.default.preemphasis)
 
-    if hp.convert.one_full_wav:
-        # Concatenate to a wav
-        y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
-        audio = np.reshape(audio, (1, audio.size), order='C')
+    # if hp.convert.one_full_wav:
+    #     # Concatenate to a wav
+    #     y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
+    #     audio = np.reshape(audio, (1, audio.size), order='C')
+
+    return audio, y_audio, ppgs
+
+
+def get_eval_input_names():
+    return ['x_mfccs', 'y_spec', 'y_mel']
+
+
+def get_eval_output_names():
+    return ['pred_spec', 'y_spec', 'ppgs']
+
+
+def do_convert(args, logdir1, logdir2):
+    # Load graph
+    model = Net2()
+
+    df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
+
+    ckpt1 = tf.train.latest_checkpoint(logdir1)
+    ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
+    session_inits = []
+    if ckpt2:
+        session_inits.append(SaverRestore(ckpt2))
+    if ckpt1:
+        session_inits.append(SaverRestore(ckpt1, ignore=['global_step']))
+    pred_conf = PredictConfig(
+        model=model,
+        input_names=get_eval_input_names(),
+        output_names=get_eval_output_names(),
+        session_init=ChainInit(session_inits))
+    predictor = OfflinePredictor(pred_conf)
+
+    audio, y_audio, ppgs = convert(predictor, df)
 
     # Write the result
     tf.summary.audio('A', y_audio, hp.default.sr, max_outputs=hp.convert.batch_size)
