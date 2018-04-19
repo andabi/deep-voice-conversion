@@ -1,9 +1,9 @@
 # Voice Conversion with Non-Parallel Data
 ## Subtitle: Speaking like Kate Winslet
->* Authors: Dabi Ahn(andabi412@gmail.com), [Kyubyong Park](https://github.com/Kyubyong)(kbpark.linguist@gmail.com)
+> Authors: Dabi Ahn(andabi412@gmail.com), [Kyubyong Park](https://github.com/Kyubyong)(kbpark.linguist@gmail.com)
 
 ## Samples
-[Here](https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks).
+https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks
 
 ## Intro
 What if you could imitate a famous celebrity's voice or sing like a famous singer?
