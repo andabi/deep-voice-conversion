@@ -61,28 +61,65 @@ def convert(logdir='logdir/default/train2', queue=False):
         pred_specs = np.power(pred_specs, hp.Convert.emphasis_magnitude)
         y_specs = np.power(y_specs, hp.Convert.emphasis_magnitude)
 
-        # Spectrogram to waveform
-        audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), pred_specs))
-        y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), y_specs))
 
-        # Apply inverse pre-emphasis
-        audio = inv_preemphasis(audio, coeff=hp_default.preemphasis)
-        y_audio = inv_preemphasis(y_audio, coeff=hp_default.preemphasis)
 
-        if not queue:
-            # Concatenate to a wav
+#======================================================================================================================
+        # # Spectrogram to waveform
+        # audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), pred_specs))
+        # y_audio = np.array(map(lambda spec: spectrogram2wav(spec.T, hp_default.n_fft, hp_default.win_length, hp_default.hop_length, hp_default.n_iter), y_specs))
+
+        # print((audio).shape)
+        # # Apply inverse pre-emphasis
+        # audio = inv_preemphasis(audio, coeff=hp_default.preemphasis)
+        # y_audio = inv_preemphasis(y_audio, coeff=hp_default.preemphasis)
+
+        # if not queue:
+        #     # Concatenate to a wav
+        #     y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
+        #     audio = np.reshape(audio, (1, audio.size), order='C')
+
+        # # Write the result
+        # tf.summary.audio('A', y_audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
+        # tf.summary.audio('B', audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
+
+        # # Visualize PPGs
+        # heatmap = np.expand_dims(ppgs, 3)  # channel=1
+        # tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
+
+
+
+#===========================================================================================================================
+
+        temp_s=pred_specs.shape
+        #print(temp_s) 
+        for gg in range (0,temp_s[0]):
+
+            audio = spectrogram2wav(pred_specs[gg].T, hp.Default.n_fft, hp.Default.win_length, hp.Default.hop_length, hp.Default.n_iter)
+            y_audio = spectrogram2wav( y_specs[gg].T, hp.Default.n_fft, hp.Default.win_length, hp.Default.hop_length, hp.Default.n_iter)
+
+            #print("-----",type(audio),audio.shape,y_audio.shape)
+
+            audio = inv_preemphasis(audio, coeff=hp.Default.preemphasis)
+            y_audio = inv_preemphasis(y_audio, coeff=hp.Default.preemphasis)
+
             y_audio = np.reshape(y_audio, (1, y_audio.size), order='C')
             audio = np.reshape(audio, (1, audio.size), order='C')
 
-        # Write the result
-        tf.summary.audio('A', y_audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
-        tf.summary.audio('B', audio, hp_default.sr, max_outputs=hp.Convert.batch_size)
+            #librosa.output.write_wav(result_path + "/"+str(gg) +".wav", audio, 16000)
+            #librosa.output.write_wav(result_path + "/y_"+str(gg) +".wav", y_audio, 16000)
 
-        # Visualize PPGs
-        heatmap = np.expand_dims(ppgs, 3)  # channel=1
-        tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
+            tf.summary.audio("A", y_audio, hp.Default.sr, max_outputs=hp.Convert.batch_size)
+            tf.summary.audio("B", audio, hp.Default.sr, max_outputs=hp.Convert.batch_size)
+
+            #Visualize PPGs
+            heatmap = np.expand_dims(ppgs, 3)  # channel=1
+            tf.summary.image('PPG', heatmap, max_outputs=ppgs.shape[0])
+            print("Done..===============.",gg)
+
+    #==================================================================================
 
         writer.add_summary(sess.run(tf.summary.merge_all()), global_step=gs)
+        print("yo============================")
         writer.close()
 
         coord.request_stop()

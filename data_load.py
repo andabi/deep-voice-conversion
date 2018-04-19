@@ -32,7 +32,7 @@ def get_mfccs_and_phones(wav_file, sr, trim=False, random_crop=True,
     num_timesteps = mfccs.shape[0]
 
     # phones (targets)
-    phn_file = wav_file.replace("WAV.wav", "PHN").replace("wav", "PHN")
+    phn_file = wav_file.replace("WAV.WAV", "PHN").replace("WAV", "PHN")
     phn2idx, idx2phn = load_vocab()
     phns = np.zeros(shape=(num_timesteps,))
     bnd_list = []
@@ -252,7 +252,7 @@ def get_batch(mode, batch_size):
     with tf.device('/cpu:0'):
         # Load data
         wav_files = load_data(mode=mode)
-
+        print ("===================",type (wav_files), len(wav_files), batch_size)    
         target_wavs = sample(wav_files, batch_size)
 
         if mode in ('train1', 'test1'):
@@ -378,11 +378,14 @@ def load_data(mode):
     '''
     if mode == "train1":
         wav_files = glob.glob(hp.Train1.data_path)
+        print("Length of wav files::data_load.py::381 from", hp.Train1.data_path ,len(wav_files))
     elif mode == "test1":
         wav_files = glob.glob(hp.Test1.data_path)
     elif mode == "train2":
         testset_size = hp.Test2.batch_size * 4
         wav_files = glob.glob(hp.Train2.data_path)[testset_size:]
+        #print("Length of wav files::data_load.py::387",len(wav_files))
+
     elif mode == "test2":
         testset_size = hp.Test2.batch_size * 4
         wav_files = glob.glob(hp.Train2.data_path)[:testset_size]
