@@ -28,8 +28,6 @@ def train(args, logdir):
     # dataflow
     df = Net1DataFlow(hp.train1.data_path, hp.train1.batch_size)
 
-    ckpt1 = tf.train.latest_checkpoint(logdir1)
-
     # set logger for event and model saver
     logger.set_logger_dir(logdir)
 
