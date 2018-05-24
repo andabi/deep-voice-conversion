@@ -1,11 +1,9 @@
 # Voice Conversion with Non-Parallel Data
 ## Subtitle: Speaking like Kate Winslet
->* This is the first draft.
->* Authors: Dabi Ahn(andabi412@gmail.com), [Kyubyong Park](https://github.com/Kyubyong)(kbpark.linguist@gmail.com)
->* We always welcome any questions, new ideas, or contributions.
+> Authors: Dabi Ahn(andabi412@gmail.com), [Kyubyong Park](https://github.com/Kyubyong)(kbpark.linguist@gmail.com)
 
 ## Samples
-It's not perfect yet, but listen to [them](https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks).
+https://soundcloud.com/andabi/sets/voice-style-transfer-to-kate-winslet-with-deep-neural-networks
 
 ## Intro
 What if you could imitate a famous celebrity's voice or sing like a famous singer?
@@ -89,16 +87,6 @@ Net2 contains Net1 as a sub-network.
 * It seems that to apply temperature to softmax in Net1 is not so meaningful.
 * IMHO, the accuracy of Net1(phoneme classification) does not need to be so perfect.
   * Net2 can reach to near optimal when Net1 accuracy is correct to some extent.
-
-## Future Works
-* Adversarial training
-  * Expecting to generate sharper and cleaner voice.
-* Cross lingual
-
-## Ultimate Goals
-* Many-to-Many(Multi target speaker) voice conversion system
-* VC without training set of target voice, but only small set of target voice (1 min)
-  * (On going)
 
 ## References
 * ["Phonetic posteriorgrams for many-to-one voice conversion without parallel data training"](https://www.researchgate.net/publication/307434911_Phonetic_posteriorgrams_for_many-to-one_voice_conversion_without_parallel_data_training), 2016 IEEE International Conference on Multimedia and Expo (ICME)
