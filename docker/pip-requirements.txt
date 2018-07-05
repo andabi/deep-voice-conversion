@@ -1,0 +1,9 @@
+tensorflow-gpu >= 1.1
+numpy >= 1.11.1
+librosa == 0.5.1
+tensorpack == 0.8.0
+pyyaml
+soundfile
+pydub
+git+https://github.com/wookayin/tensorflow-plot.git@master
+tqdm
