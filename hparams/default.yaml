@@ -52,13 +52,12 @@ train2:
     data_path: '/data/private/vc/datasets/arctic/slt/*.wav'
 
     # model
-    hidden_units: 512  # alias: E
+    hidden_units: 256  # alias: E
     num_banks: 8
     num_highway_blocks: 8
     norm_type: 'ins'  # a normalizer function. value: bn, ln, ins, or None
     t: 1.0  # temperature
     dropout_rate: 0.2
-    n_mixtures: 5
 
     # train
     batch_size: 32
@@ -68,7 +67,6 @@ train2:
     clip_value_max: 3.
     clip_value_min: -3.
     clip_norm: 10
-    mol_step: 0.003
     num_epochs: 10000
     steps_per_epoch: 100
     save_per_epoch: 50

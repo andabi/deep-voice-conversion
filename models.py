@@ -99,26 +99,20 @@ class Net2(ModelDesc):
         self.net1 = Net1()
         with tf.variable_scope('net1'):
             self.ppgs, _, _ = self.net1.network(self.x_mfcc, is_training)
-
         self.ppgs = tf.identity(self.ppgs, name='ppgs')
 
         # build net2
         with tf.variable_scope('net2'):
-            self.mu, self.log_var, self.log_pi = self.network(self.ppgs, is_training)
+            self.pred_spec, self.pred_mel = self.network(self.ppgs, is_training)
+        self.pred_spec = tf.identity(self.pred_spec, name='pred_spec')
 
         self.cost = self.loss()
 
         # summaries
         tf.summary.scalar('net2/train/loss', self.cost)
-        tf.summary.histogram('net2/train/mu', self.mu)
-        tf.summary.histogram('net2/train/var', tf.exp(self.log_var))
-        tf.summary.histogram('net2/train/pi', tf.exp(self.log_pi))
 
         if not is_training:
             tf.summary.scalar('net2/eval/summ_loss', self.cost)
-
-            # build for conversion phase
-            self.convert()
 
     def _get_optimizer(self):
         gradprocs = [
@@ -142,78 +136,21 @@ class Net2(ModelDesc):
                             is_training=is_training)  # (N, T, E/2)
 
         # CBHG1: mel-scale
-        # pred_mel = cbhg(prenet_out, hp.train2.num_banks, hp.train2.hidden_units // 2,
-        #                 hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
-        #                 scope="cbhg_mel")
-        # pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1])  # (N, T, n_mels)
-        pred_mel = prenet_out
+        pred_mel = cbhg(prenet_out, hp.train2.num_banks, hp.train2.hidden_units // 2,
+                        hp.train2.num_highway_blocks, hp.train2.norm_type, is_training,
+                        scope="cbhg_mel")
+        pred_mel = tf.layers.dense(pred_mel, self.y_mel.shape[-1], name='pred_mel')  # (N, T, n_mels)
 
         # CBHG2: linear-scale
-        out = tf.layers.dense(pred_mel, hp.train2.hidden_units // 2)  # (N, T, n_mels)
-        out = cbhg(out, hp.train2.num_banks, hp.train2.hidden_units // 2,
+        pred_spec = tf.layers.dense(pred_mel, hp.train2.hidden_units // 2)  # (N, T, n_mels)
+        pred_spec = cbhg(pred_spec, hp.train2.num_banks, hp.train2.hidden_units // 2,
                    hp.train2.num_highway_blocks, hp.train2.norm_type, is_training, scope="cbhg_linear")
+        pred_spec = tf.layers.dense(pred_spec, self.y_spec.shape[-1], name='pred_spec')  # log magnitude: (N, T, 1+n_fft//2)
 
-        _, n_timesteps, n_bins = self.y_spec.get_shape().as_list()
-        n_units = n_bins * hp.train2.n_mixtures
-        out = tf.layers.dense(out, n_units * 3, bias_initializer=tf.random_uniform_initializer(minval=-3., maxval=3.))
-
-        mu = tf.nn.sigmoid(out[..., :n_units])
-        mu = tf.reshape(mu, shape=(-1, n_timesteps, n_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
-
-        log_var = tf.maximum(out[..., n_units: 2 * n_units], -7.0)
-        log_var = tf.reshape(log_var,
-                            shape=(-1, n_timesteps, n_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
-
-        log_pi = tf.reshape(out[..., 2 * n_units: 3 * n_units],
-                        shape=(-1, n_timesteps, n_bins, hp.train2.n_mixtures))  # (N, T, 1+hp.n_fft//2, n_mixtures)
-        log_pi = normalize(log_pi, type='ins', is_training=get_current_tower_context().is_training, scope='normalize_pi')
-        log_pi = tf.nn.log_softmax(log_pi)
-
-        return mu, log_var, log_pi
+        return pred_spec, pred_mel
 
     def loss(self):
-        y = tf.expand_dims(self.y_spec, axis=-1)
-        y = tf.concat([y]*hp.train2.n_mixtures, axis=-1)
-
-        centered_x = y - self.mu
-        inv_stdv = tf.exp(-self.log_var)
-        plus_in = inv_stdv * (centered_x + hp.train2.mol_step)
-        min_in = inv_stdv * (centered_x - hp.train2.mol_step)
-        cdf_plus = tf.sigmoid(plus_in)
-        cdf_min = tf.sigmoid(min_in)
-
-        # log probability for edge case
-        log_cdf_plus = plus_in - tf.nn.softplus(plus_in)
-        log_one_minus_cdf_min = -tf.nn.softplus(min_in)
-
-        # probability for all other cases
-        cdf_delta = cdf_plus - cdf_min
-
-        log_prob = tf.where(y < 0.001, log_cdf_plus, tf.where(y > 0.999, log_one_minus_cdf_min, tf.log(tf.maximum(cdf_delta, 1e-12))))
-
-        tf.summary.histogram('net2/train/prob', tf.exp(log_prob))
-
-        log_prob = log_prob + self.log_pi
-
-        tf.summary.histogram('net2/prob_max', tf.reduce_max(tf.exp(log_prob), axis=-1))
-
-        log_prob = tf.reduce_logsumexp(log_prob, axis=-1)
-
-        loss_mle = -tf.reduce_mean(log_prob)
-
-        mean = tf.reduce_sum(self.mu * self.log_pi, axis=-1, keep_dims=True)
-        loss_mix = tf.reduce_sum(self.log_pi * tf.squared_difference(self.mu, mean), axis=-1)
-        loss_mix = -tf.reduce_mean(loss_mix)
-
-        lamb = 0
-        loss = loss_mle + lamb * loss_mix
-
-        tf.summary.scalar('net2/train/loss_mle', loss_mle)
-        tf.summary.scalar('net2/train/loss_mix', loss_mix)
-
+        loss_spec = tf.reduce_mean(tf.squared_difference(self.pred_spec, self.y_spec))
+        loss_mel = tf.reduce_mean(tf.squared_difference(self.pred_mel, self.y_mel))
+        loss = loss_spec + loss_mel
         return loss
-
-    def convert(self):
-        argmax = tf.one_hot(tf.argmax(self.log_pi, axis=-1), hp.train2.n_mixtures)
-        pred_spec = tf.reduce_sum(self.mu * argmax, axis=-1, name='pred_spec')
-        return pred_spec

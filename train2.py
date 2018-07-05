@@ -16,7 +16,6 @@ from tensorpack.train.interface import launch_train_with_config
 from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
 from tensorpack.utils import logger
 
-from convert import ConvertCallback
 from data_load import Net2DataFlow
 from hparam import hparam as hp
 from models import Net2
