@@ -36,7 +36,7 @@ CBHG is known to be good for capturing features from sequential data.
 * Net1 classifies spectrogram to phonemes that consists of 60 English phonemes at every timestep.
   * For each timestep, the input is log magnitude spectrogram and the target is phoneme dist.
 * Objective function is cross entropy loss.
-* [TIMIT dataset](https://catalog.ldc.upenn.edu/ldc93s1) used.
+* [TIMIT dataset](https://catalog.ldc.upenn.edu/LDC93S1) used.
   * contains 630 speakers' utterances and corresponding phones that speaks similar sentences.
 * Over 70% test accuracy
 
