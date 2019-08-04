@@ -73,7 +73,7 @@ if __name__ == '__main__':
     hp.set_hparam_yaml(args.case)
     logdir_train1 = '{}/train1'.format(hp.logdir)
 
-    print('case: {}, logdir: {}'.format(args.case1, args.case, logdir_train1))
+    print('case: {}, logdir: {}'.format(args.case, logdir_train1))
 
     train(args, logdir=logdir_train1)
 
