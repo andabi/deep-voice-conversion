@@ -304,9 +304,9 @@ def dynamic_range_compression(db, threshold, ratio, method='downward'):
     :param method: Downward or upward.
     :return: Range compressed dB-scaled magnitudes
     """
-    if method is 'downward':
+    if method == 'downward':
         db[db > threshold] = (db[db > threshold] - threshold) / ratio + threshold
-    elif method is 'upward':
+    elif method == 'upward':
         db[db < threshold] = threshold - ((threshold - db[db < threshold]) / ratio)
     return db
 
