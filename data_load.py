@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
 import glob
 import random
 
@@ -8,7 +5,8 @@ import librosa
 import numpy as np
 from tensorpack.dataflow.base import RNGDataFlow
 from tensorpack.dataflow.common import BatchData
-from tensorpack.dataflow import PrefetchData
+from tensorpack.dataflow.parallel import MultiProcessRunner
+
 from audio import read_wav, preemphasis, amp2db
 from hparam import hparam as hp
 from utils import normalize_0_1
@@ -23,21 +21,21 @@ class DataFlow(RNGDataFlow):
     def __call__(self, n_prefetch=1000, n_thread=1):
         df = self
         df = BatchData(df, self.batch_size)
-        df = PrefetchData(df, n_prefetch, n_thread)
+        df = MultiProcessRunner(df, n_prefetch, n_thread)
         return df
 
 
 class Net1DataFlow(DataFlow):
 
-    def get_data(self):
+    def __iter__(self):
         while True:
             wav_file = random.choice(self.wav_files)
-            yield get_mfccs_and_phones(wav_file=wav_file)
+            yield get_mfccs_and_phones(wav_file)
 
 
 class Net2DataFlow(DataFlow):
 
-    def get_data(self):
+    def __iter__(self):
         while True:
             wav_file = random.choice(self.wav_files)
             yield get_mfccs_and_spectrogram(wav_file)

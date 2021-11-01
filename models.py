@@ -1,27 +1,25 @@
-# -*- coding: utf-8 -*-
-# !/usr/bin/env python
-
-import tensorflow as tf
-from tensorpack.graph_builder.model_desc import ModelDesc, InputDesc
-from tensorpack.tfutils import (
-    get_current_tower_context, optimizer, gradproc)
+from tensorpack.compat import tfv1 as tf
+from tensorpack.graph_builder.model_desc import ModelDesc
+from tensorpack.tfutils import get_current_tower_context, optimizer, gradproc
 from tensorpack.tfutils.scope_utils import auto_reuse_variable_scope
 
-import tensorpack_extension
 from data_load import phns
 from hparam import hparam as hp
 from modules import prenet, cbhg, normalize
+from tensorpack_extension import FilterGradientVariables
 
 
 class Net1(ModelDesc):
     def __init__(self):
         pass
 
-    def _get_inputs(self):
-        return [InputDesc(tf.float32, (None, None, hp.default.n_mfcc), 'x_mfccs'),
-                InputDesc(tf.int32, (None, None,), 'y_ppgs')]
+    def inputs(self):
+        return [
+            tf.TensorSpec((None, None, hp.default.n_mfcc), tf.float32, "x_mfccs"),
+            tf.TensorSpec((None, None,), tf.int32, "y_ppgs")
+        ]
 
-    def _build_graph(self, inputs):
+    def build_graph(self, *inputs):
         self.x_mfccs, self.y_ppgs = inputs
         is_training = get_current_tower_context().is_training
         with tf.variable_scope('net1'):
@@ -41,8 +39,10 @@ class Net1(ModelDesc):
             # for confusion matrix
             tf.reshape(self.y_ppgs, shape=(tf.size(self.y_ppgs),), name='net1/eval/y_ppg_1d')
             tf.reshape(self.preds, shape=(tf.size(self.preds),), name='net1/eval/pred_ppg_1d')
+        
+        return self.cost
 
-    def _get_optimizer(self):
+    def optimizer(self):
         lr = tf.get_variable('learning_rate', initializer=hp.train1.lr, trainable=False)
         return tf.train.AdamOptimizer(lr)
 
@@ -83,14 +83,15 @@ class Net1(ModelDesc):
 
 class Net2(ModelDesc):
 
-    def _get_inputs(self):
+    def inputs(self):
         n_timesteps = (hp.default.duration * hp.default.sr) // hp.default.hop_length + 1
+        return [
+            tf.TensorSpec((None, n_timesteps, hp.default.n_mfcc), tf.float32, 'x_mfccs'),
+            tf.TensorSpec((None, n_timesteps, hp.default.n_fft // 2 + 1), tf.float32, 'y_spec'),
+            tf.TensorSpec((None, n_timesteps, hp.default.n_mels), tf.float32, 'y_mel')
+        ]
 
-        return [InputDesc(tf.float32, (None, n_timesteps, hp.default.n_mfcc), 'x_mfccs'),
-                InputDesc(tf.float32, (None, n_timesteps, hp.default.n_fft // 2 + 1), 'y_spec'),
-                InputDesc(tf.float32, (None, n_timesteps, hp.default.n_mels), 'y_mel'), ]
-
-    def _build_graph(self, inputs):
+    def build_graph(self, *inputs):
         self.x_mfcc, self.y_spec, self.y_mel = inputs
 
         is_training = get_current_tower_context().is_training
@@ -114,9 +115,11 @@ class Net2(ModelDesc):
         if not is_training:
             tf.summary.scalar('net2/eval/summ_loss', self.cost)
 
-    def _get_optimizer(self):
+        return self.cost
+
+    def optimizer(self):
         gradprocs = [
-            tensorpack_extension.FilterGradientVariables('.*net2.*', verbose=False),
+            FilterGradientVariables('.*net2.*', verbose=False),
             gradproc.MapGradient(
                 lambda grad: tf.clip_by_value(grad, hp.train2.clip_value_min, hp.train2.clip_value_max)),
             gradproc.GlobalNormClip(hp.train2.clip_norm),

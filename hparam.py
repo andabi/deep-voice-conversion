@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python
-
 import yaml
 
 
 def load_hparam(filename):
     stream = open(filename, 'r')
-    docs = yaml.load_all(stream)
+    docs = yaml.load_all(stream,  yaml.Loader)
     hparam_dict = dict()
     for doc in docs:
         for k, v in doc.items():

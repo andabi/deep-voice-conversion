@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-#/usr/bin/python2
-
-from __future__ import print_function
-
-import tensorflow as tf
+from tensorpack.compat import tfv1 as tf
 
 
 def embed(inputs, vocab_size, num_units, zero_pad=True, scope="embedding", reuse=None):
@@ -213,9 +208,9 @@ def gru(inputs, num_units=None, bidirection=False, seqlens=None, scope="gru", re
         if num_units is None:
             num_units = inputs.get_shape().as_list[-1]
             
-        cell = tf.contrib.rnn.GRUCell(num_units)  
+        cell = tf.nn.rnn_cell.GRUCell(num_units)  
         if bidirection: 
-            cell_bw = tf.contrib.rnn.GRUCell(num_units)
+            cell_bw = tf.nn.rnn_cell.GRUCell(num_units)
             outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell_bw, inputs, 
                                                          sequence_length=seqlens,
                                                          dtype=tf.float32)
@@ -250,7 +245,7 @@ def attention_decoder(inputs, memory, seqlens=None, num_units=None, scope="atten
                                                                    memory_sequence_length=seqlens, 
                                                                    normalize=True,
                                                                    probability_fn=tf.nn.softmax)
-        decoder_cell = tf.contrib.rnn.GRUCell(num_units)
+        decoder_cell = tf.nn.rnn_cell.GRUCell(num_units)
         cell_with_attention = tf.contrib.seq2seq.AttentionWrapper(decoder_cell, attention_mechanism, num_units)
         outputs, _ = tf.nn.dynamic_rnn(cell_with_attention, inputs, 
                                        dtype=tf.float32) #( N, T', 16)

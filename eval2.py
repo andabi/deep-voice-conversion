@@ -1,21 +1,17 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
-from __future__ import print_function
-
-import tensorflow as tf
-from models import Net2
 import argparse
-from hparam import hparam as hp
+
+from tensorpack.compat import is_tfv2, tfv1 as tf
 from tensorpack.predict.base import OfflinePredictor
 from tensorpack.predict.config import PredictConfig
-from tensorpack.tfutils.sessinit import SaverRestore
-from tensorpack.tfutils.sessinit import ChainInit
+from tensorpack.tfutils.sessinit import ChainInit, SaverRestore
+
 from data_load import Net2DataFlow
+from hparam import hparam as hp
+from models import Net2
 
 
 def get_eval_input_names():
-    return ['x_mfccs', 'y_spec']
+    return ['x_mfccs', 'y_spec', 'y_mel']
 
 
 def get_eval_output_names():
@@ -23,6 +19,9 @@ def get_eval_output_names():
 
 
 def eval(logdir1, logdir2):
+    if is_tfv2(): 
+        tf.disable_v2_behavior()
+
     # Load graph
     model = Net2()
 
@@ -43,8 +42,7 @@ def eval(logdir1, logdir2):
         session_init=ChainInit(session_inits))
     predictor = OfflinePredictor(pred_conf)
 
-    x_mfccs, y_spec, _ = next(df().get_data())
-    summ_loss, = predictor(x_mfccs, y_spec)
+    summ_loss, = predictor(*next(df().ds.get_data()))
 
     writer = tf.summary.FileWriter(logdir2)
     writer.add_summary(summ_loss)

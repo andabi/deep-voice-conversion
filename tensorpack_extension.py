@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python
-
 import re
-from tensorpack.utils import logger
-from tensorpack.tfutils.gradproc import GradientProcessor
+
 from tensorpack.callbacks.monitor import JSONWriter
-import tensorflow as tf
+from tensorpack.compat import tfv1 as tf
+from tensorpack.tfutils.gradproc import GradientProcessor
+from tensorpack.utils import logger
 
 
 # class AudioWriter(TrainingMonitor):

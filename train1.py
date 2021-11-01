@@ -1,23 +1,17 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
-from __future__ import print_function
-
 import argparse
-import multiprocessing
 import os
 
 from tensorpack.callbacks.saver import ModelSaver
+from tensorpack.compat import tfv1 as tf
+from tensorpack.input_source.input_source import QueueInput
 from tensorpack.tfutils.sessinit import SaverRestore
-from tensorpack.train.interface import TrainConfig
-from tensorpack.train.interface import launch_train_with_config
+from tensorpack.train.interface import launch_train_with_config, TrainConfig
 from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
 from tensorpack.utils import logger
-from tensorpack.input_source.input_source import QueueInput
+
 from data_load import Net1DataFlow
 from hparam import hparam as hp
 from models import Net1
-import tensorflow as tf
 
 
 def train(args, logdir):
@@ -31,10 +25,12 @@ def train(args, logdir):
     # set logger for event and model saver
     logger.set_logger_dir(logdir)
 
-    session_conf = tf.ConfigProto(
+    session_config = tf.ConfigProto(
+        allow_soft_placement=True,
         gpu_options=tf.GPUOptions(
             allow_growth=True,
-        ),)
+        ),
+    )
 
     train_conf = TrainConfig(
         model=model,
@@ -45,7 +41,7 @@ def train(args, logdir):
         ],
         max_epoch=hp.train1.num_epochs,
         steps_per_epoch=hp.train1.steps_per_epoch,
-        # session_config=session_conf
+        session_config=session_config
     )
     ckpt = '{}/{}'.format(logdir, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir)
     if ckpt:
@@ -73,7 +69,7 @@ if __name__ == '__main__':
     hp.set_hparam_yaml(args.case)
     logdir_train1 = '{}/train1'.format(hp.logdir)
 
-    print('case: {}, logdir: {}'.format(args.case1, args.case, logdir_train1))
+    print('case: {}, logdir: {}'.format(args.case, logdir_train1))
 
     train(args, logdir=logdir_train1)
 
