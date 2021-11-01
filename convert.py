@@ -1,23 +1,17 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
-
-from __future__ import print_function
-
 import argparse
-
-from models import Net2
-import numpy as np
-from audio import spec2wav, inv_preemphasis, db2amp, denormalize_db
 import datetime
-import tensorflow as tf
-from hparam import hparam as hp
-from data_load import Net2DataFlow
+
+import numpy as np
+from tensorpack.callbacks.base import Callback
+from tensorpack.compat import is_tfv2, tfv1 as tf
 from tensorpack.predict.base import OfflinePredictor
 from tensorpack.predict.config import PredictConfig
-from tensorpack.tfutils.sessinit import SaverRestore
-from tensorpack.tfutils.sessinit import ChainInit
-from tensorpack.callbacks.base import Callback
+from tensorpack.tfutils.sessinit import ChainInit, SaverRestore
+
+from audio import spec2wav, inv_preemphasis, db2amp, denormalize_db
+from data_load import Net2DataFlow
+from hparam import hparam as hp
+from models import Net2
 
 
 # class ConvertCallback(Callback):
@@ -42,7 +36,7 @@ from tensorpack.callbacks.base import Callback
 
 
 def convert(predictor, df):
-    pred_spec, y_spec, ppgs = predictor(next(df().get_data()))
+    pred_spec, y_spec, ppgs = predictor(*next(df().ds.get_data()))
 
     # Denormalizatoin
     pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
@@ -57,10 +51,26 @@ def convert(predictor, df):
     y_spec = np.power(y_spec, hp.convert.emphasis_magnitude)
 
     # Spectrogram to waveform
-    audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
-                                               hp.default.n_iter), pred_spec))
-    y_audio = np.array(map(lambda spec: spec2wav(spec.T, hp.default.n_fft, hp.default.win_length, hp.default.hop_length,
-                                                 hp.default.n_iter), y_spec))
+    audio = np.array(list(map(lambda spec: 
+        spec2wav(
+            spec.T, 
+            hp.default.n_fft, 
+            hp.default.win_length, 
+            hp.default.hop_length,
+            hp.default.n_iter
+        ), 
+        pred_spec
+    )))
+    y_audio = np.array(list(map(lambda spec: 
+        spec2wav(
+            spec.T, 
+            hp.default.n_fft, 
+            hp.default.win_length, 
+            hp.default.hop_length,
+            hp.default.n_iter
+        ), 
+        y_spec
+    )))
 
     # Apply inverse pre-emphasis
     audio = inv_preemphasis(audio, coeff=hp.default.preemphasis)
@@ -83,6 +93,9 @@ def get_eval_output_names():
 
 
 def do_convert(args, logdir1, logdir2):
+    if is_tfv2(): 
+        tf.disable_v2_behavior()
+
     # Load graph
     model = Net2()
 
@@ -117,15 +130,6 @@ def do_convert(args, logdir1, logdir2):
         summ = sess.run(tf.summary.merge_all())
     writer.add_summary(summ)
     writer.close()
-
-    # session_conf = tf.ConfigProto(
-    #     allow_soft_placement=True,
-    #     device_count={'CPU': 1, 'GPU': 0},
-    #     gpu_options=tf.GPUOptions(
-    #         allow_growth=True,
-    #         per_process_gpu_memory_fraction=0.6
-    #     ),
-    # )
 
 
 def get_arguments():

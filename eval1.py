@@ -1,19 +1,14 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
-from __future__ import print_function
-
 import argparse
 
-import tensorflow as tf
+from tensorpack.compat import is_tfv2, tfv1 as tf
+from tensorpack.predict.base import OfflinePredictor
+from tensorpack.predict.config import PredictConfig
+from tensorpack.tfutils.sessinit import SaverRestore
 
 from data_load import Net1DataFlow, phns, load_vocab
 from hparam import hparam as hp
 from models import Net1
 from utils import plot_confusion_matrix
-from tensorpack.predict.config import PredictConfig
-from tensorpack.predict.base import OfflinePredictor
-from tensorpack.tfutils.sessinit import SaverRestore
 
 
 def get_eval_input_names():
@@ -25,6 +20,9 @@ def get_eval_output_names():
 
 
 def eval(logdir):
+    if is_tfv2(): 
+        tf.disable_v2_behavior()
+
     # Load graph
     model = Net1()
 
@@ -41,8 +39,7 @@ def eval(logdir):
         pred_conf.session_init = SaverRestore(ckpt)
     predictor = OfflinePredictor(pred_conf)
 
-    x_mfccs, y_ppgs = next(df().get_data())
-    y_ppg_1d, pred_ppg_1d, summ_loss, summ_acc = predictor(x_mfccs, y_ppgs)
+    y_ppg_1d, pred_ppg_1d, summ_loss, summ_acc = predictor(*next(df().ds.get_data()))
 
     # plot confusion matrix
     _, idx2phn = load_vocab()

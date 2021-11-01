@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
-# /usr/bin/python2
-
-from __future__ import print_function
-
 import argparse
 import os
 
-import tensorflow as tf
 from tensorpack.callbacks.saver import ModelSaver
+from tensorpack.compat import tfv1 as tf
 from tensorpack.input_source.input_source import QueueInput
-from tensorpack.tfutils.sessinit import ChainInit
-from tensorpack.tfutils.sessinit import SaverRestore
-from tensorpack.train.interface import TrainConfig
-from tensorpack.train.interface import launch_train_with_config
+from tensorpack.tfutils.sessinit import ChainInit, SaverRestore
+from tensorpack.train.interface import launch_train_with_config, TrainConfig
 from tensorpack.train.trainers import SyncMultiGPUTrainerReplicated
 from tensorpack.utils import logger
 
@@ -32,12 +25,13 @@ def train(args, logdir1, logdir2):
     # set logger for event and model saver
     logger.set_logger_dir(logdir2)
 
-    # session_conf = tf.ConfigProto(
-    #     gpu_options=tf.GPUOptions(
-    #         allow_growth=True,
-    #         per_process_gpu_memory_fraction=0.6,
-    #     ),
-    # )
+    session_config = tf.ConfigProto(
+        allow_soft_placement=True,
+        gpu_options=tf.GPUOptions(
+            allow_growth=True,
+            per_process_gpu_memory_fraction=0.6,
+        ),
+    )
 
     session_inits = []
     ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
@@ -56,7 +50,8 @@ def train(args, logdir1, logdir2):
         ],
         max_epoch=hp.train2.num_epochs,
         steps_per_epoch=hp.train2.steps_per_epoch,
-        session_init=ChainInit(session_inits)
+        session_init=ChainInit(session_inits),
+        session_config=session_config
     )
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu

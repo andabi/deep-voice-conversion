@@ -7,3 +7,5 @@ outputs
 __*
 hparams
 tools
+venv
+.vscode

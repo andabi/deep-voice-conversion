@@ -1,4 +1,5 @@
-tensorflow-gpu >= 1.8
+tensorflow-gpu == 2.4
+tensorflow == 2.4
 tensorpack == 0.11
 librosa == 0.6.3
 numba == 0.48

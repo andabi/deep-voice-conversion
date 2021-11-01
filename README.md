@@ -54,10 +54,10 @@ Net2 contains Net1 as a sub-network.
 
 ## Implementations
 ### Requirements
-* python 2.7
-* tensorflow >= 1.1
-* numpy >= 1.11.1
-* librosa == 0.5.1
+* python 3.3+
+* tensorflow >= 1.8
+* tensorpack == 0.11
+* librosa == 0.6.3
 
 ### Settings
 * sample rate: 16,000Hz
