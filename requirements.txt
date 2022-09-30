@@ -1,7 +1,7 @@
 tensorflow-gpu >= 1.8
 numpy >= 1.11.1
 librosa == 0.5.1
-joblib == 0.11.0
+joblib == 1.2.0
 tensorpack >= 0.8.6
 pyyaml
 soundfile
